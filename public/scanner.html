@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Tubhyam – Barcode Scanner</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #334155;
+    }
+    header h1 { font-size: 18px; font-weight: 700; color: #fff; }
+    header span { font-size: 12px; color: #64748b; }
+
+    .container { max-width: 480px; margin: 0 auto; padding: 16px; }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: #1e293b;
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: #3b82f6;
+      color: white;
+    }
+
+    /* Scanner view */
+    #scanner-view, #manual-view { display: none; }
+    #scanner-view.active, #manual-view.active { display: block; }
+
+    #scanner-box {
+      border-radius: 16px;
+      overflow: hidden;
+      border: 2px solid #3b82f6;
+      position: relative;
+    }
+    #scanner-box video { width: 100%; display: block; }
+
+    .scan-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .scan-frame {
+      width: 200px;
+      height: 200px;
+      border: 3px solid #3b82f6;
+      border-radius: 12px;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.45);
+      position: relative;
+    }
+    .scan-line {
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      height: 2px;
+      background: #3b82f6;
+      animation: scan 2s linear infinite;
+      box-shadow: 0 0 8px #3b82f6;
+    }
+    @keyframes scan {
+      0% { top: 10px; }
+      50% { top: calc(100% - 12px); }
+      100% { top: 10px; }
+    }
+
+    .scan-hint {
+      text-align: center;
+      color: #64748b;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+
+    /* Manual entry */
+    .input-group { margin-bottom: 14px; }
+    .input-group label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 6px; }
+    .input-group input {
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: #f1f5f9;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-group input:focus { border-color: #3b82f6; }
+    .input-group input::placeholder { color: #475569; }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: #3b82f6; color: white; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-green { background: #16a34a; color: white; margin-top: 8px; }
+    .btn-green:hover { background: #15803d; }
+    .btn-red { background: #dc2626; color: white; margin-top: 8px; }
+
+    /* Product card */
+    #result-card {
+      display: none;
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 20px;
+      border: 1px solid #334155;
+    }
+    #result-card.show { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .product-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+    .product-name { font-size: 17px; font-weight: 700; color: #f1f5f9; }
+    .product-sku { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+    .status-badge {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .status-in-stock { background: #14532d; color: #4ade80; }
+    .status-low-stock { background: #78350f; color: #fbbf24; }
+    .status-out-of-stock { background: #7f1d1d; color: #f87171; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .stat-box {
+      background: #0f172a;
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-value { font-size: 22px; font-weight: 800; color: #3b82f6; }
+    .stat-label { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+    .supplier-info {
+      background: #0f172a;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+    .supplier-info h4 { font-size: 12px; color: #64748b; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .supplier-name { font-size: 14px; font-weight: 600; }
+    .supplier-phone { font-size: 13px; color: #64748b; }
+
+    /* Update stock section */
+    .update-section {
+      border-top: 1px solid #334155;
+      padding-top: 16px;
+    }
+    .update-section h4 { font-size: 13px; color: #94a3b8; margin-bottom: 10px; }
+    .qty-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .qty-row input {
+      flex: 1;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #f1f5f9;
+      font-size: 15px;
+      outline: none;
+    }
+    .qty-row input:focus { border-color: #3b82f6; }
+
+    /* Loading / Error */
+    #loading {
+      display: none;
+      text-align: center;
+      padding: 30px;
+      color: #64748b;
+    }
+    #loading.show { display: block; }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid #334155;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #error-box {
+      display: none;
+      background: #7f1d1d;
+      border: 1px solid #dc2626;
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 16px;
+      color: #fca5a5;
+      font-size: 14px;
+      text-align: center;
+    }
+    #error-box.show { display: block; }
+
+    #success-toast {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #16a34a;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 100px;
+      font-weight: 700;
+      font-size: 14px;
+      z-index: 999;
+      animation: fadeIn 0.3s ease;
+    }
+    #success-toast.show { display: block; }
+
+    #html5-qr-code-full-region { border: none !important; }
+    #html5-qr-code-full-region img { display: none !important; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>📦 Tubhyam Scanner</h1>
+    <span>Inventory Management</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('scanner')">📷 Scan Barcode</button>
+    <button class="tab-btn" onclick="switchTab('manual')">⌨️ Enter SKU</button>
+  </div>
+
+  <!-- Camera Scanner Tab -->
+  <div id="scanner-view" class="active">
+    <div id="scanner-box">
+      <div id="html5-qr-code-full-region"></div>
+      <div class="scan-overlay">
+        <div class="scan-frame">
+          <div class="scan-line"></div>
+        </div>
+      </div>
+    </div>
+    <p class="scan-hint">Point camera at product barcode or QR code</p>
+  </div>
+
+  <!-- Manual SKU Tab -->
+  <div id="manual-view">
+    <div class="input-group">
+      <label>Product SKU / Barcode</label>
+      <input id="sku-input" type="text" placeholder="e.g. FP-001, TP-012" autocomplete="off" />
+    </div>
+    <button class="btn btn-primary" onclick="lookupSKU(document.getElementById('sku-input').value)">
+      Search Product
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Looking up product...</p>
+  </div>
+
+  <!-- Error -->
+  <div id="error-box"></div>
+
+  <!-- Product Result Card -->
+  <div id="result-card">
+    <div class="product-header">
+      <div>
+        <div class="product-name" id="prod-name">—</div>
+        <div class="product-sku" id="prod-sku">—</div>
+      </div>
+      <span class="status-badge" id="prod-status-badge">—</span>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-value" id="prod-stock">—</div>
+        <div class="stat-label">Current Stock</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="prod-reorder">—</div>
+        <div class="stat-label">Reorder Point</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="prod-price">—</div>
+        <div class="stat-label">Selling Price</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="prod-demand">—</div>
+        <div class="stat-label">AI Predicted/wk</div>
+      </div>
+    </div>
+
+    <div class="supplier-info" id="supplier-section" style="display:none">
+      <h4>Supplier</h4>
+      <div class="supplier-name" id="supplier-name">—</div>
+      <div class="supplier-phone" id="supplier-phone">—</div>
+    </div>
+
+    <!-- Update stock -->
+    <div class="update-section">
+      <h4>Update Stock</h4>
+      <div class="qty-row">
+        <input type="number" id="qty-input" placeholder="Quantity" min="1" value="1" />
+      </div>
+      <button class="btn btn-green" onclick="updateStock('add')">+ Add Stock (Restock)</button>
+      <button class="btn btn-red" onclick="updateStock('sell')">− Record Sale</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="success-toast"></div>
+
+<script>
+  const API = 'http://localhost:3001';
+  let currentProduct = null;
+  let scanner = null;
+  let scannerStarted = false;
+
+  // ===== TABS =====
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach((b, i) => {
+      b.classList.toggle('active', (i === 0 && tab === 'scanner') || (i === 1 && tab === 'manual'));
+    });
+    document.getElementById('scanner-view').classList.toggle('active', tab === 'scanner');
+    document.getElementById('manual-view').classList.toggle('active', tab === 'manual');
+
+    if (tab === 'scanner' && !scannerStarted) startScanner();
+    if (tab === 'manual' && scanner) { scanner.stop().catch(() => {}); scannerStarted = false; }
+  }
+
+  // ===== CAMERA SCANNER =====
+  function startScanner() {
+    scanner = new Html5Qrcode('html5-qr-code-full-region');
+    scanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 200, height: 200 }, aspectRatio: 1.0 },
+      (decodedText) => {
+        scanner.stop().then(() => { scannerStarted = false; });
+        lookupSKU(decodedText.trim().toUpperCase());
+      },
+      () => {}
+    ).then(() => { scannerStarted = true; }).catch(err => {
+      showError('Camera access denied. Use "Enter SKU" tab instead.');
+    });
+  }
+
+  // ===== LOOKUP PRODUCT =====
+  async function lookupSKU(sku) {
+    if (!sku) return;
+    sku = sku.trim().toUpperCase();
+
+    hideAll();
+    document.getElementById('loading').classList.add('show');
+
+    try {
+      // Search by SKU
+      const res = await fetch(`${API}/api/products?search=${encodeURIComponent(sku)}`);
+      const products = await res.json();
+
+      document.getElementById('loading').classList.remove('show');
+
+      if (!products.length) {
+        showError(`No product found for SKU: "${sku}"`);
+        return;
+      }
+
+      showProduct(products[0]);
+    } catch (err) {
+      document.getElementById('loading').classList.remove('show');
+      showError('Cannot connect to server. Make sure inventory server is running on port 3001.');
+    }
+  }
+
+  // ===== SHOW PRODUCT =====
+  function showProduct(product) {
+    currentProduct = product;
+
+    document.getElementById('prod-name').textContent = product.name;
+    document.getElementById('prod-sku').textContent = 'SKU: ' + product.sku;
+    document.getElementById('prod-stock').textContent = product.currentStock ?? '—';
+    document.getElementById('prod-reorder').textContent = product.reorderPoint ?? '—';
+    document.getElementById('prod-price').textContent = product.sellingPrice ? '₹' + product.sellingPrice : '—';
+    document.getElementById('prod-demand').textContent = product.predictedDemand ?? '—';
+
+    // Status badge
+    const badge = document.getElementById('prod-status-badge');
+    badge.textContent = (product.status || 'unknown').replace('-', ' ');
+    badge.className = 'status-badge';
+    if (product.status === 'in-stock') badge.classList.add('status-in-stock');
+    else if (product.status === 'low-stock') badge.classList.add('status-low-stock');
+    else if (product.status === 'out-of-stock') badge.classList.add('status-out-of-stock');
+
+    // Supplier
+    if (product.supplier) {
+      document.getElementById('supplier-section').style.display = 'block';
+      document.getElementById('supplier-name').textContent = product.supplier.name || '—';
+      document.getElementById('supplier-phone').textContent = product.supplier.whatsappNumber || product.supplier.phone || '—';
+    } else {
+      document.getElementById('supplier-section').style.display = 'none';
+    }
+
+    document.getElementById('result-card').classList.add('show');
+  }
+
+  // ===== UPDATE STOCK =====
+  async function updateStock(action) {
+    if (!currentProduct) return;
+    const qty = parseInt(document.getElementById('qty-input').value);
+    if (!qty || qty < 1) { showError('Enter a valid quantity.'); return; }
+
+    const newStock = action === 'add'
+      ? currentProduct.currentStock + qty
+      : Math.max(0, currentProduct.currentStock - qty);
+
+    // Determine new status
+    let newStatus = 'in-stock';
+    if (newStock === 0) newStatus = 'out-of-stock';
+    else if (newStock <= currentProduct.reorderPoint) newStatus = 'low-stock';
+
+    try {
+      const res = await fetch(`${API}/api/products/${currentProduct._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentStock: newStock, status: newStatus })
+      });
+
+      if (!res.ok) throw new Error('Update failed');
+
+      // If sale, record in sales history
+      if (action === 'sell') {
+        await fetch(`${API}/api/sales`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productId: currentProduct._id,
+            quantitySold: qty,
+            revenue: (currentProduct.sellingPrice || 0) * qty
+          })
+        });
+      }
+
+      currentProduct.currentStock = newStock;
+      currentProduct.status = newStatus;
+      showProduct(currentProduct);
+      showToast(action === 'add' ? `✅ Added ${qty} units to stock!` : `✅ Recorded sale of ${qty} units!`);
+    } catch (err) {
+      showError('Failed to update stock: ' + err.message);
+    }
+  }
+
+  // ===== HELPERS =====
+  function hideAll() {
+    document.getElementById('result-card').classList.remove('show');
+    document.getElementById('error-box').classList.remove('show');
+    document.getElementById('loading').classList.remove('show');
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-box');
+    el.textContent = '⚠️ ' + msg;
+    el.classList.add('show');
+  }
+
+  function showToast(msg) {
+    const el = document.getElementById('success-toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
+  // Enter key on SKU input
+  document.getElementById('sku-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') lookupSKU(e.target.value);
+  });
+
+  // Auto-start scanner on load
+  startScanner();
+</script>
+</body>
+</html>

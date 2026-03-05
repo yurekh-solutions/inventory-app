@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tubhyam - Brand Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+:root{
+  --bg: hsl(25,30%,10%);
+  --fg: hsl(35,40%,90%);
+  --card-bg: hsl(25,25%,16%);
+  --border: hsl(25,20%,26%);
+  --input-bg: hsl(25,20%,22%);
+  --muted: hsl(35,15%,65%);
+  --gold: hsl(32,100%,79%);
+  --gold-dark: hsl(30,85%,70%);
+  --font-serif: 'Cormorant Garamond', serif;
+  --font-sans: 'Montserrat', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;scrollbar-width:none;-ms-overflow-style:none}
+*::-webkit-scrollbar{display:none;width:0;height:0}
+body{font-family:var(--font-sans);font-weight:400;background:var(--bg);color:var(--fg);min-height:100vh;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,h5,h6{font-family:var(--font-serif);font-weight:400;letter-spacing:0.04em}
+
+/* â”€â”€ NAV â”€â”€ */
+nav{background:linear-gradient(135deg,hsl(25,25%,14%,0.97),hsl(25,20%,12%,0.97));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;height:58px;gap:4px;overflow-x:auto;white-space:nowrap;position:sticky;top:0;z-index:50}
+nav .logo{font-family:var(--font-serif);font-weight:600;font-size:22px;color:var(--gold);margin-right:16px;flex-shrink:0;letter-spacing:0.06em}
+.nav-btn{padding:8px 14px;border:none;background:transparent;color:var(--muted);font-family:var(--font-sans);font-size:12px;font-weight:600;border-radius:8px;cursor:pointer;transition:all .25s;flex-shrink:0;letter-spacing:0.04em}
+.nav-btn.active,.nav-btn:hover{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:hsl(25,30%,10%)}
+
+/* â”€â”€ PAGES â”€â”€ */
+.page{display:none;padding:20px;max-width:1100px;margin:0 auto}
+.page.active{display:block}
+
+/* â”€â”€ GLASS CARDS â”€â”€ */
+.card{position:relative;overflow:hidden;border-radius:16px;background:linear-gradient(135deg,rgba(60,45,35,0.85),rgba(55,42,32,0.45));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(240,220,190,0.08);box-shadow:0 8px 32px 0 rgba(10,7,4,0.4);padding:20px;margin-bottom:16px;transition:border-color .3s,box-shadow .3s}
+.card:hover{border-color:rgba(255,185,110,0.2);box-shadow:0 10px 40px -10px rgba(255,185,110,0.15),0 8px 32px 0 rgba(10,7,4,0.4)}
+.card h2{font-family:var(--font-serif);font-size:20px;font-weight:400;margin-bottom:14px;color:var(--fg);letter-spacing:0.04em}
+.card h3{font-size:13px;color:var(--muted);margin-bottom:10px;font-family:var(--font-sans)}
+
+/* â”€â”€ STAT GRID â”€â”€ */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.stat{background:linear-gradient(135deg,rgba(60,45,35,0.85),rgba(55,42,32,0.45));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(240,220,190,0.08);box-shadow:0 8px 32px 0 rgba(10,7,4,0.4);border-radius:14px;padding:18px;text-align:center}
+.stat .val{font-size:32px;font-weight:600;font-family:var(--font-serif)}
+.stat .lbl{font-size:11px;color:var(--muted);margin-top:4px;letter-spacing:0.05em;text-transform:uppercase;font-family:var(--font-sans)}
+.stat.blue .val{color:var(--gold)}
+.stat.yellow .val{color:hsl(32,90%,65%)}
+.stat.red .val{color:hsl(0,70%,65%)}
+.stat.green .val{color:hsl(140,60%,55%)}
+
+/* â”€â”€ TABLE â”€â”€ */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{background:hsl(25,30%,10%);padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);position:sticky;top:0;font-family:var(--font-sans);font-weight:600}
+td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:hover td{background:rgba(60,45,35,0.4)}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em}
+.badge.in-stock{background:hsl(140,45%,14%);color:hsl(140,60%,60%);border:1px solid hsl(140,45%,24%)}
+.badge.low-stock{background:hsl(32,60%,16%);color:var(--gold);border:1px solid hsl(32,55%,26%)}
+.badge.out{background:hsl(0,45%,16%);color:hsl(0,70%,65%);border:1px solid hsl(0,45%,26%)}
+
+/* â”€â”€ FORM â”€â”€ */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:540px){.form-grid{grid-template-columns:1fr}}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-family:var(--font-sans);letter-spacing:0.03em}
+.field input,.field select{width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:14px;outline:none;font-family:var(--font-sans);transition:border-color .2s}
+.field input:focus,.field select:focus{border-color:var(--gold)}
+.field select option{background:hsl(25,30%,10%)}
+
+/* â”€â”€ BUTTONS â”€â”€ */
+.btn{padding:10px 20px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all .25s;font-family:var(--font-sans);letter-spacing:0.04em}
+.btn-blue{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:hsl(25,30%,10%)}
+.btn-blue:hover{box-shadow:0 4px 20px rgba(255,185,110,0.35);transform:translateY(-1px)}
+.btn-green{background:hsl(140,50%,22%);color:hsl(140,60%,75%);border:1px solid hsl(140,45%,30%)}
+.btn-green:hover{background:hsl(140,50%,27%)}
+.btn-red{background:hsl(0,50%,22%);color:hsl(0,70%,75%);border:1px solid hsl(0,45%,30%)}
+.btn-red:hover{background:hsl(0,50%,27%)}
+.btn-gray{background:var(--input-bg);color:var(--fg);border:1px solid var(--border)}
+.btn-gray:hover{background:var(--card-bg)}
+.btn-sm{padding:6px 14px;font-size:12px;border-radius:8px}
+
+/* â”€â”€ SCANNER â”€â”€ */
+#scanner-region{border-radius:14px;overflow:hidden;border:2px solid var(--gold);position:relative;background:#000}
+#scanner-region video{width:100%;display:block}
+.scan-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.scan-box{width:200px;height:200px;border:3px solid var(--gold);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.45);position:relative}
+.scan-line{position:absolute;left:8px;right:8px;height:2px;background:var(--gold);animation:scan 2s linear infinite;box-shadow:0 0 8px var(--gold)}
+@keyframes scan{0%{top:10px}50%{top:calc(100% - 12px)}100%{top:10px}}
+#scan-result-card{display:none;margin-top:16px}
+#scan-result-card.show{display:block}
+
+/* â”€â”€ MODAL â”€â”€ */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(10,7,4,.75);backdrop-filter:blur(6px);z-index:100;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:linear-gradient(135deg,rgba(60,45,35,0.95),rgba(55,42,32,0.95));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(240,220,190,0.12);border-radius:20px;padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.5)}
+.modal h3{font-family:var(--font-serif);font-size:22px;font-weight:400;margin-bottom:18px;letter-spacing:0.04em;color:var(--gold)}
+
+/* â”€â”€ TOAST â”€â”€ */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:100px;font-weight:600;font-size:13px;font-family:var(--font-sans);letter-spacing:0.04em;z-index:999;display:none}
+#toast.show{display:block;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+#toast.ok{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:hsl(25,30%,10%)}
+#toast.err{background:hsl(0,50%,25%);color:hsl(0,70%,80%);border:1px solid hsl(0,45%,35%)}
+
+/* â”€â”€ LOADING â”€â”€ */
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:30px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mt{margin-top:14px}
+.empty{text-align:center;padding:40px;color:var(--muted);font-size:14px;font-family:var(--font-sans)}
+
+/* â”€â”€ WHATSAPP STATUS â”€â”€ */
+.wa-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px}
+.wa-dot.on{background:hsl(140,60%,50%);box-shadow:0 0 8px hsl(140,60%,50%)}
+.wa-dot.off{background:hsl(0,65%,55%)}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">Tubhyam</div>
+  <button class="nav-btn active" onclick="go('dashboard',this)">Dashboard</button>
+  <button class="nav-btn" onclick="go('products',this)">Products</button>
+  <button class="nav-btn" onclick="go('customers',this)">Customers</button>
+  <button class="nav-btn" onclick="go('broadcast',this)">Broadcast</button>
+  <button class="nav-btn" onclick="go('payments',this)">Payments</button>
+  <button class="nav-btn" onclick="go('scanner',this)">Scanner</button>
+  <button class="nav-btn" onclick="go('alerts',this)">Alerts</button>
+  <button class="nav-btn" onclick="go('whatsapp',this)">WhatsApp</button>
+</nav>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="stat-grid" id="stat-grid">
+    <div class="stat blue"><div class="val" id="s-total">--</div><div class="lbl">Products</div></div>
+    <div class="stat yellow"><div class="val" id="s-low">--</div><div class="lbl">Low Stock</div></div>
+    <div class="stat red"><div class="val" id="s-out">--</div><div class="lbl">Out of Stock</div></div>
+    <div class="stat green"><div class="val" id="s-rev">--</div><div class="lbl">Weekly Revenue Rs.</div></div>
+    <div class="stat blue"><div class="val" id="s-cust">--</div><div class="lbl">Customers</div></div>
+    <div class="stat yellow"><div class="val" id="s-alerts">--</div><div class="lbl">Unread Alerts</div></div>
+  </div>
+  <div class="card">
+    <h2>Low Stock Products</h2>
+    <div id="low-stock-list"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- PRODUCTS -->
+<div class="page" id="page-products">
+  <div class="flex" style="margin-bottom:16px">
+    <input id="prod-search" placeholder="Search by name or SKU..." style="flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--fg);font-size:14px;outline:none;font-family:var(--font-sans)" oninput="loadProducts()"/>
+    <select id="prod-filter" onchange="loadProducts()" style="background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--fg);font-size:14px;outline:none;font-family:var(--font-sans)">
+      <option value="">All Categories</option>
+      <option value="formal">Formal</option>
+      <option value="track">Track</option>
+      <option value="jeans">Jeans</option>
+      <option value="belt">Belt</option>
+    </select>
+    <button class="btn btn-blue" onclick="openAddProduct()">+ Add Product</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Name / SKU</th><th>Category</th><th>Stock</th><th>Price Rs.</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="prod-tbody"><tr><td colspan="6"><div class="spinner"></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOMERS -->
+<div class="page" id="page-customers">
+  <div class="flex" style="margin-bottom:16px">
+    <input id="cust-search" placeholder="Search by name or phone..." style="flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--fg);font-size:14px;outline:none;font-family:var(--font-sans)" oninput="loadCustomers()"/>
+    <select id="cust-state" onchange="loadCustomers()" style="background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--fg);font-size:14px;outline:none;font-family:var(--font-sans)">
+      <option value="">All States</option>
+      <option>Maharashtra</option><option>Delhi</option><option>Gujarat</option><option>Rajasthan</option>
+      <option>Karnataka</option><option>Tamil Nadu</option><option>Uttar Pradesh</option><option>West Bengal</option>
+      <option>Telangana</option><option>Andhra Pradesh</option><option>Madhya Pradesh</option><option>Punjab</option>
+      <option>Haryana</option><option>Bihar</option><option>Odisha</option><option>Kerala</option>
+      <option>Jharkhand</option><option>Assam</option><option>Chhattisgarh</option><option>Uttarakhand</option>
+      <option>Himachal Pradesh</option><option>Goa</option>
+    </select>
+    <button class="btn btn-blue" onclick="openAddCustomer()">+ Add Customer</button>
+  </div>
+  <div id="cust-state-bar" style="margin-bottom:12px"></div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Phone / WhatsApp</th><th>City, State</th><th>Orders</th><th>Total Spent</th><th>Tags</th><th>Actions</th></tr></thead>
+        <tbody id="cust-tbody"><tr><td colspan="7"><div class="spinner"></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- BROADCAST -->
+<div class="page" id="page-broadcast">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div>
+      <div class="card">
+        <h2>New Broadcast</h2>
+        <div class="field" style="margin-bottom:10px"><label>Broadcast Title</label><input id="bc-title" placeholder="New Arrival - Premium Formal Pants"/></div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Message</label>
+          <textarea id="bc-msg" rows="5" placeholder="Hello! New arrivals are here at Tubhyam..." style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:14px;outline:none;font-family:var(--font-sans);resize:vertical"></textarea>
+        </div>
+        <div class="field" style="margin-bottom:10px">
+          <label>Target Audience</label>
+          <select id="bc-target" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:14px;outline:none;font-family:var(--font-sans)">
+            <option value="all">All Customers (Pan India)</option>
+            <option value="state">Specific State</option>
+            <option value="vip">VIP Customers Only</option>
+            <option value="regular">Regular Customers</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:14px" id="bc-state-wrap" style="display:none">
+          <label>State (if specific)</label>
+          <input id="bc-state" placeholder="e.g. Maharashtra"/>
+        </div>
+        <button class="btn btn-blue" style="width:100%" onclick="createBroadcast()">Save &amp; Prepare Broadcast</button>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>Broadcast History</h2>
+        <div id="bc-list"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENTS -->
+<div class="page" id="page-payments">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div>
+      <div class="card">
+        <h2>Send Payment Request</h2>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Sends UPI payment link to customer via WhatsApp</p>
+        <div class="form-grid">
+          <div class="field"><label>Customer Phone *</label><input id="pay-phone" placeholder="917021341409"/></div>
+          <div class="field"><label>Customer Name</label><input id="pay-name" placeholder="Sonia Jaiswal"/></div>
+          <div class="field"><label>Product Name *</label><input id="pay-product" placeholder="Black Formal Pants"/></div>
+          <div class="field"><label>Size</label><input id="pay-size" placeholder="M"/></div>
+          <div class="field"><label>Color</label><input id="pay-color" placeholder="Black"/></div>
+          <div class="field"><label>Quantity</label><input id="pay-qty" type="number" value="1" min="1"/></div>
+          <div class="field"><label>Amount Rs. *</label><input id="pay-amount" type="number" placeholder="1499"/></div>
+          <div class="field"><label>Your UPI ID</label><input id="pay-upi" placeholder="tubhyam@upi"/></div>
+        </div>
+        <div class="field" style="margin-top:10px"><label>Notes</label><input id="pay-notes" placeholder="COD not available. Pay within 24 hrs."/></div>
+        <button class="btn btn-blue" style="width:100%;margin-top:14px" onclick="sendPayment()">Send Payment Link via WhatsApp</button>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>Payment History</h2>
+        <div id="pay-list"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCANNER -->
+<div class="page" id="page-scanner">
+  <div style="max-width:480px;margin:0 auto">
+    <div class="card">
+      <h2>Scan Product Barcode</h2>
+      <div id="scanner-region">
+        <div id="html5qr"></div>
+        <div class="scan-overlay"><div class="scan-box"><div class="scan-line"></div></div></div>
+      </div>
+      <p style="text-align:center;color:var(--muted);font-size:13px;margin-top:10px">Point camera at product barcode or QR code</p>
+      <div style="margin-top:14px">
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">Or type SKU manually:</label>
+        <div class="flex">
+          <input id="manual-sku" placeholder="e.g. FP-001" style="flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--fg);font-size:14px;outline:none"/>
+          <button class="btn btn-blue" onclick="lookupSKU(document.getElementById('manual-sku').value)">Search</button>
+        </div>
+      </div>
+    </div>
+    <div id="scan-result-card"><div class="card" id="scan-product-info"></div></div>
+  </div>
+</div>
+
+<!-- ALERTS -->
+<div class="page" id="page-alerts">
+  <h2 style="font-size:20px;margin-bottom:16px">Alerts</h2>
+  <div id="alerts-list"><div class="spinner"></div></div>
+</div>
+
+<!-- WHATSAPP -->
+<div class="page" id="page-whatsapp">
+  <div style="max-width:480px;margin:0 auto">
+    <div class="card">
+      <h2>WhatsApp Business</h2>
+      <div class="flex" style="margin-bottom:16px">
+        <span class="wa-dot off" id="wa-dot"></span>
+        <span id="wa-status-text" style="font-size:14px;color:var(--muted)">Checking...</span>
+      </div>
+      <a href="/whatsapp/qr" target="_blank" class="btn btn-green" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px">Scan QR to Connect WhatsApp Business</a>
+      <button class="btn btn-gray" style="width:100%" onclick="checkWAStatus()">Refresh Status</button>
+    </div>
+    <div class="card">
+      <h2>Send Test Message</h2>
+      <div class="field" style="margin-bottom:10px"><label>Phone (with country code)</label><input id="wa-to" placeholder="917021341409"/></div>
+      <div class="field" style="margin-bottom:14px"><label>Message</label><input id="wa-msg" placeholder="Hello from Tubhyam!"/></div>
+      <button class="btn btn-blue" style="width:100%" onclick="sendTestWA()">Send Message</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-bg" id="modal-product">
+  <div class="modal">
+    <h3 id="modal-prod-title">Add New Product</h3>
+    <div class="form-grid">
+      <div class="field"><label>SKU *</label><input id="f-sku" placeholder="FP-001"/></div>
+      <div class="field"><label>Product Name *</label><input id="f-name" placeholder="Black Formal Pants"/></div>
+      <div class="field"><label>Category *</label>
+        <select id="f-cat"><option value="formal">Formal</option><option value="track">Track</option><option value="jeans">Jeans</option><option value="belt">Belt</option></select>
+      </div>
+      <div class="field"><label>Current Stock</label><input id="f-stock" type="number" placeholder="50"/></div>
+      <div class="field"><label>Min Stock (Alert Level)</label><input id="f-min" type="number" placeholder="10"/></div>
+      <div class="field"><label>Reorder Point</label><input id="f-reorder" type="number" placeholder="15"/></div>
+      <div class="field"><label>Cost Price Rs.</label><input id="f-cost" type="number" placeholder="800"/></div>
+      <div class="field"><label>Selling Price Rs.</label><input id="f-sell" type="number" placeholder="1499"/></div>
+    </div>
+    <div class="flex mt">
+      <button class="btn btn-blue" style="flex:1" onclick="saveProduct()">Save Product</button>
+      <button class="btn btn-gray" onclick="closeModal('modal-product')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-customer">
+  <div class="modal">
+    <h3 id="modal-cust-title">Add Customer</h3>
+    <div class="form-grid">
+      <div class="field"><label>Full Name *</label><input id="c-name" placeholder="Sonia Jaiswal"/></div>
+      <div class="field"><label>Phone *</label><input id="c-phone" placeholder="9876543210"/></div>
+      <div class="field"><label>WhatsApp Number</label><input id="c-wa" placeholder="919876543210"/></div>
+      <div class="field"><label>Email</label><input id="c-email" placeholder="sonia@email.com"/></div>
+      <div class="field"><label>City</label><input id="c-city" placeholder="Mumbai"/></div>
+      <div class="field"><label>State</label>
+        <select id="c-state" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:14px;outline:none;font-family:var(--font-sans)">
+          <option value="">Select State</option>
+          <option>Maharashtra</option><option>Delhi</option><option>Gujarat</option><option>Rajasthan</option>
+          <option>Karnataka</option><option>Tamil Nadu</option><option>Uttar Pradesh</option><option>West Bengal</option>
+          <option>Telangana</option><option>Andhra Pradesh</option><option>Madhya Pradesh</option><option>Punjab</option>
+          <option>Haryana</option><option>Bihar</option><option>Odisha</option><option>Kerala</option>
+          <option>Goa</option><option>Jharkhand</option><option>Assam</option><option>Chhattisgarh</option>
+          <option>Uttarakhand</option><option>Himachal Pradesh</option>
+        </select>
+      </div>
+      <div class="field"><label>Pincode</label><input id="c-pin" placeholder="400001"/></div>
+      <div class="field"><label>Tag</label>
+        <select id="c-tag" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:14px;outline:none;font-family:var(--font-sans)">
+          <option value="New">New</option>
+          <option value="Regular">Regular</option>
+          <option value="VIP">VIP</option>
+        </select>
+      </div>
+      <div class="field"><label>Preferred Sizes (comma separated)</label><input id="c-sizes" placeholder="M, L"/></div>
+    </div>
+    <div class="field" style="margin-top:10px"><label>Notes</label><input id="c-notes" placeholder="Prefers formal pants..."/></div>
+    <div style="margin-top:10px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer">
+        <input type="checkbox" id="c-broadcast" checked style="accent-color:var(--gold)"/> Opted in for broadcast messages
+      </label>
+    </div>
+    <div class="flex mt">
+      <button class="btn btn-blue" style="flex:1" onclick="saveCustomer()">Save Customer</button>
+      <button class="btn btn-gray" onclick="closeModal('modal-customer')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-stock">
+  <div class="modal">
+    <h3 id="stock-modal-title">Update Stock</h3>
+    <p id="stock-current-info" style="color:var(--muted);font-size:14px;margin-bottom:16px"></p>
+    <div class="field" style="margin-bottom:10px"><label>Quantity</label><input id="stock-qty" type="number" placeholder="Enter quantity" min="1" value="1"/></div>
+    <div class="flex mt">
+      <button class="btn btn-green" style="flex:1" onclick="doStockUpdate('add')">+ Add Stock</button>
+      <button class="btn btn-red" style="flex:1" onclick="doStockUpdate('sell')">- Sell / Remove</button>
+      <button class="btn btn-gray" onclick="closeModal('modal-stock')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// API URL: empty string uses same origin (works locally and in production)
+const API = '';
+let editingProductId = null, editingCustomerId = null, editingStockProduct = null;
+let scanner = null, scannerOn = false;
+
+function go(page, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(page==='dashboard') loadDashboard();
+  if(page==='products') loadProducts();
+  if(page==='customers') { loadCustomers(); loadStateStats(); }
+  if(page==='broadcast') loadBroadcasts();
+  if(page==='payments') loadPayments();
+  if(page==='alerts') loadAlerts();
+  if(page==='scanner') startScanner();
+  if(page==='whatsapp') checkWAStatus();
+  if(page!=='scanner' && scannerOn) stopScanner();
+}
+
+// ---- DASHBOARD ----
+async function loadDashboard() {
+  try {
+    const d = await fetch(API+'/api/dashboard/stats').then(r=>r.json());
+    document.getElementById('s-total').textContent = d.totalProducts||0;
+    document.getElementById('s-low').textContent = d.lowStock||0;
+    document.getElementById('s-out').textContent = d.outOfStock||0;
+    document.getElementById('s-rev').textContent = (d.weeklyRevenue||0).toLocaleString('en-IN');
+    document.getElementById('s-alerts').textContent = d.unreadAlerts||0;
+  } catch(e){}
+  try {
+    const c = await fetch(API+'/api/customers').then(r=>r.json());
+    document.getElementById('s-cust').textContent = Array.isArray(c)?c.length:0;
+  } catch(e){}
+  try {
+    const prods = await fetch(API+'/api/products?status=low-stock').then(r=>r.json());
+    const list = document.getElementById('low-stock-list');
+    if(!prods.length){list.innerHTML='<p class="empty">No low stock items right now!</p>';return;}
+    list.innerHTML = prods.slice(0,8).map(p=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)">
+        <div><div style="font-weight:600;font-size:14px">${p.name}</div><div style="font-size:12px;color:var(--muted)">SKU: ${p.sku}</div></div>
+        <div style="text-align:right">
+          <div style="font-size:22px;font-weight:700;color:hsl(0,70%,65%)">${p.currentStock}</div>
+          <div style="font-size:11px;color:var(--muted)">units left</div>
+        </div>
+      </div>`).join('');
+  } catch(e){ document.getElementById('low-stock-list').innerHTML='<p class="empty">Could not load. Is the server running?</p>'; }
+}
+
+// ---- PRODUCTS ----
+async function loadProducts() {
+  const search = document.getElementById('prod-search')?.value||'';
+  const cat = document.getElementById('prod-filter')?.value||'';
+  let url = API+'/api/products?';
+  if(search) url+='search='+encodeURIComponent(search)+'&';
+  if(cat) url+='category='+cat;
+  const tbody = document.getElementById('prod-tbody');
+  tbody.innerHTML='<tr><td colspan="6"><div class="spinner"></div></td></tr>';
+  try {
+    const prods = await fetch(url).then(r=>r.json());
+    if(!prods.length){tbody.innerHTML='<tr><td colspan="6" class="empty">No products found. Add your first product!</td></tr>';return;}
+    tbody.innerHTML = prods.map(p=>`
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:10px"><img src="${p.images?.[0]||'/placeholder.svg'}" onerror="this.src='/placeholder.svg'" style="width:50px;height:50px;object-fit:cover;border-radius:6px;border:1px solid var(--border)"/><div><div style="font-weight:600">${p.name}</div><div style="font-size:11px;color:var(--muted)">${p.sku}</div></div></div></td>
+        <td style="text-transform:capitalize">${p.category}</td>
+        <td><span style="font-size:18px;font-weight:700;color:${p.currentStock<=p.reorderPoint?'hsl(0,70%,65%)':'hsl(140,60%,55%)'}">${p.currentStock}</span></td>
+        <td>Rs.${p.sellingPrice||'-'}</td>
+        <td><span class="badge ${p.status==='in-stock'?'in-stock':p.status==='low-stock'?'low-stock':'out'}">${(p.status||'').replace(/-/g,' ')}</span></td>
+        <td><div class="flex">
+          <button class="btn btn-blue btn-sm" onclick='openStockModal(${JSON.stringify(p)})'>Stock</button>
+          <button class="btn btn-gray btn-sm" onclick='editProduct(${JSON.stringify(p)})'>Edit</button>
+          <button class="btn btn-red btn-sm" onclick="deleteProduct('${p._id}')">Del</button>
+        </div></td>
+      </tr>`).join('');
+  } catch(e){ tbody.innerHTML=`<tr><td colspan="6" class="empty">Server not connected. Run: node server.js</td></tr>`; }
+}
+
+function openAddProduct(){editingProductId=null;document.getElementById('modal-prod-title').textContent='Add New Product';['f-sku','f-name','f-stock','f-min','f-reorder','f-cost','f-sell'].forEach(id=>document.getElementById(id).value='');document.getElementById('modal-product').classList.add('open');}
+function editProduct(p){editingProductId=p._id;document.getElementById('modal-prod-title').textContent='Edit Product';document.getElementById('f-sku').value=p.sku;document.getElementById('f-name').value=p.name;document.getElementById('f-cat').value=p.category;document.getElementById('f-stock').value=p.currentStock;document.getElementById('f-min').value=p.minStock;document.getElementById('f-reorder').value=p.reorderPoint;document.getElementById('f-cost').value=p.costPrice;document.getElementById('f-sell').value=p.sellingPrice;document.getElementById('modal-product').classList.add('open');}
+async function saveProduct(){
+  const data={sku:document.getElementById('f-sku').value.trim().toUpperCase(),name:document.getElementById('f-name').value.trim(),category:document.getElementById('f-cat').value,currentStock:+document.getElementById('f-stock').value,minStock:+document.getElementById('f-min').value,reorderPoint:+document.getElementById('f-reorder').value,costPrice:+document.getElementById('f-cost').value,sellingPrice:+document.getElementById('f-sell').value};
+  if(!data.sku||!data.name){toast('Fill SKU and Name!','err');return;}
+  data.status=data.currentStock===0?'out-of-stock':data.currentStock<=data.reorderPoint?'low-stock':'in-stock';
+  try{
+    const r=await fetch(editingProductId?`${API}/api/products/${editingProductId}`:API+'/api/products',{method:editingProductId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    if(!r.ok)throw new Error((await r.json()).error);
+    closeModal('modal-product');loadProducts();toast(editingProductId?'Product updated!':'Product added!','ok');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+async function deleteProduct(id){if(!confirm('Delete this product?'))return;await fetch(`${API}/api/products/${id}`,{method:'DELETE'});loadProducts();toast('Product deleted','ok');}
+function openStockModal(p){editingStockProduct=p;document.getElementById('stock-modal-title').textContent=p.name;document.getElementById('stock-current-info').textContent=`Current: ${p.currentStock} units | Reorder at: ${p.reorderPoint}`;document.getElementById('stock-qty').value=1;document.getElementById('modal-stock').classList.add('open');}
+async function doStockUpdate(action){
+  const p=editingStockProduct;const qty=parseInt(document.getElementById('stock-qty').value);
+  if(!qty||qty<1){toast('Enter valid quantity','err');return;}
+  const newStock=action==='add'?p.currentStock+qty:Math.max(0,p.currentStock-qty);
+  const status=newStock===0?'out-of-stock':newStock<=p.reorderPoint?'low-stock':'in-stock';
+  try{
+    await fetch(`${API}/api/products/${p._id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({currentStock:newStock,status})});
+    if(action==='sell')await fetch(API+'/api/sales',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({productId:p._id,quantitySold:qty,revenue:(p.sellingPrice||0)*qty})});
+    closeModal('modal-stock');loadProducts();toast(action==='add'?`Added ${qty} units!`:`Sold ${qty} units!`,'ok');
+  }catch(e){toast('Failed: '+e.message,'err');}
+}
+
+// ---- CUSTOMERS ----
+async function loadCustomers(){
+  const search=document.getElementById('cust-search')?.value||'';
+  const state=document.getElementById('cust-state')?.value||'';
+  let url=API+'/api/customers?';
+  if(search)url+='search='+encodeURIComponent(search)+'&';
+  if(state)url+='state='+encodeURIComponent(state);
+  const tbody=document.getElementById('cust-tbody');
+  tbody.innerHTML='<tr><td colspan="7"><div class="spinner"></div></td></tr>';
+  try{
+    const custs=await fetch(url).then(r=>r.json());
+    if(!custs.length){tbody.innerHTML='<tr><td colspan="7" class="empty">No customers yet. Add your first customer!</td></tr>';return;}
+    tbody.innerHTML=custs.map(c=>`
+      <tr>
+        <td><div style="font-weight:600">${c.name}</div></td>
+        <td><div style="font-size:13px">${c.phone}</div><div style="font-size:11px;color:var(--muted)">${c.whatsappNumber||''}</div></td>
+        <td>${c.city||'-'}, ${c.state||'-'}</td>
+        <td>${c.totalOrders||0}</td>
+        <td>Rs.${(c.totalSpent||0).toLocaleString('en-IN')}</td>
+        <td>${(c.tags||[]).map(t=>`<span class="badge in-stock" style="font-size:10px">${t}</span>`).join(' ')}</td>
+        <td><div class="flex">
+          <a href="https://wa.me/${(c.whatsappNumber||c.phone).replace(/\D/g,'')}" target="_blank" class="btn btn-green btn-sm">Chat</a>
+          <button class="btn btn-gray btn-sm" onclick='editCustomer(${JSON.stringify(c)})'>Edit</button>
+          <button class="btn btn-red btn-sm" onclick="deleteCustomer('${c._id}')">Del</button>
+        </div></td>
+      </tr>`).join('');
+  }catch(e){tbody.innerHTML=`<tr><td colspan="7" class="empty">Server not connected</td></tr>`;}
+}
+
+async function loadStateStats(){
+  try{
+    const stats=await fetch(API+'/api/customers/stats/states').then(r=>r.json());
+    const bar=document.getElementById('cust-state-bar');
+    if(!stats.length){bar.innerHTML='';return;}
+    bar.innerHTML='<div class="flex" style="flex-wrap:wrap;gap:8px;margin-bottom:8px">'+stats.slice(0,8).map(s=>`
+      <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:12px">
+        <span style="color:var(--gold);font-weight:700">${s._id||'Unknown'}</span> <span style="color:var(--muted)">${s.count} customers</span>
+      </div>`).join('')+'</div>';
+  }catch(e){}
+}
+
+function openAddCustomer(){editingCustomerId=null;document.getElementById('modal-cust-title').textContent='Add Customer';['c-name','c-phone','c-wa','c-email','c-city','c-pin','c-notes','c-sizes'].forEach(id=>document.getElementById(id).value='');document.getElementById('c-tag').value='New';document.getElementById('c-broadcast').checked=true;document.getElementById('modal-customer').classList.add('open');}
+function editCustomer(c){editingCustomerId=c._id;document.getElementById('modal-cust-title').textContent='Edit Customer';document.getElementById('c-name').value=c.name;document.getElementById('c-phone').value=c.phone;document.getElementById('c-wa').value=c.whatsappNumber||'';document.getElementById('c-email').value=c.email||'';document.getElementById('c-city').value=c.city||'';document.getElementById('c-state').value=c.state||'';document.getElementById('c-pin').value=c.pincode||'';document.getElementById('c-notes').value=c.notes||'';document.getElementById('c-sizes').value=(c.preferredSizes||[]).join(', ');document.getElementById('c-tag').value=(c.tags&&c.tags[0])||'Regular';document.getElementById('c-broadcast').checked=c.optedInBroadcast!==false;document.getElementById('modal-customer').classList.add('open');}
+async function saveCustomer(){
+  const sizes=document.getElementById('c-sizes').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const data={name:document.getElementById('c-name').value.trim(),phone:document.getElementById('c-phone').value.trim(),whatsappNumber:document.getElementById('c-wa').value.trim()||undefined,email:document.getElementById('c-email').value.trim()||undefined,city:document.getElementById('c-city').value.trim(),state:document.getElementById('c-state').value,pincode:document.getElementById('c-pin').value.trim(),notes:document.getElementById('c-notes').value.trim(),tags:[document.getElementById('c-tag').value],preferredSizes:sizes,optedInBroadcast:document.getElementById('c-broadcast').checked};
+  if(!data.name||!data.phone){toast('Name and phone are required!','err');return;}
+  try{
+    const url=editingCustomerId?`${API}/api/customers/${editingCustomerId}`:API+'/api/customers';
+    const r=await fetch(url,{method:editingCustomerId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    if(!r.ok)throw new Error((await r.json()).error);
+    closeModal('modal-customer');loadCustomers();loadStateStats();toast(editingCustomerId?'Customer updated!':'Customer added!','ok');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+async function deleteCustomer(id){if(!confirm('Delete this customer?'))return;await fetch(`${API}/api/customers/${id}`,{method:'DELETE'});loadCustomers();toast('Customer deleted','ok');}
+
+// ---- BROADCAST ----
+async function loadBroadcasts(){
+  const list=document.getElementById('bc-list');
+  try{
+    const bcs=await fetch(API+'/api/broadcasts').then(r=>r.json());
+    if(!bcs.length){list.innerHTML='<div class="empty">No broadcasts yet. Create your first one!</div>';return;}
+    list.innerHTML=bcs.map(b=>`
+      <div style="border-bottom:1px solid var(--border);padding:12px 0">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-weight:600;font-size:14px">${b.title}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:3px">${b.message.substring(0,80)}...</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">${new Date(b.createdAt).toLocaleDateString('en-IN')} | ${b.totalRecipients||0} recipients | ${b.sentCount||0} sent</div>
+          </div>
+          <div class="flex">
+            <span class="badge ${b.status==='sent'?'in-stock':b.status==='sending'?'low-stock':'out'}" style="font-size:10px">${b.status}</span>
+            ${b.status==='draft'?`<button class="btn btn-blue btn-sm" onclick="sendBroadcast('${b._id}')">Send</button>`:''}
+          </div>
+        </div>
+      </div>`).join('');
+  }catch(e){list.innerHTML='<div class="empty">Server not connected</div>';}
+}
+
+async function createBroadcast(){
+  const title=document.getElementById('bc-title').value.trim();
+  const msg=document.getElementById('bc-msg').value.trim();
+  const target=document.getElementById('bc-target').value;
+  const state=document.getElementById('bc-state').value.trim();
+  if(!title||!msg){toast('Fill title and message!','err');return;}
+  const filter={sendToAll:target==='all'};
+  if(target==='state'&&state)filter.states=[state];
+  if(target==='vip')filter.tags=['VIP'];
+  if(target==='regular')filter.tags=['Regular'];
+  try{
+    const r=await fetch(API+'/api/broadcasts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,message:msg,targetFilter:filter})});
+    if(!r.ok)throw new Error((await r.json()).error);
+    document.getElementById('bc-title').value='';document.getElementById('bc-msg').value='';
+    loadBroadcasts();toast('Broadcast saved! Click Send to deliver.','ok');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+async function sendBroadcast(id){
+  if(!confirm('Send this broadcast to all matching customers via WhatsApp?'))return;
+  toast('Sending broadcast...','ok');
+  try{
+    const r=await fetch(`${API}/api/broadcasts/${id}/send`,{method:'POST'});
+    const d=await r.json();
+    toast(d.message,'ok');loadBroadcasts();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+document.getElementById('bc-target').addEventListener('change',function(){
+  document.getElementById('bc-state-wrap').style.display=this.value==='state'?'block':'none';
+});
+
+// ---- PAYMENTS ----
+async function loadPayments(){
+  const list=document.getElementById('pay-list');
+  try{
+    const pays=await fetch(API+'/api/payments').then(r=>r.json());
+    if(!pays.length){list.innerHTML='<div class="empty">No payment requests yet.</div>';return;}
+    list.innerHTML=pays.map(p=>`
+      <div style="border-bottom:1px solid var(--border);padding:12px 0">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-weight:600;font-size:14px">${p.customerName||p.customerPhone}</div>
+            <div style="font-size:12px;color:var(--muted)">${p.productName} x${p.quantity} | ${p.size||''} ${p.color||''}</div>
+            <div style="font-size:13px;color:var(--gold);font-weight:700">Rs. ${(p.amount||0).toLocaleString('en-IN')}</div>
+            <div style="font-size:11px;color:var(--muted)">${new Date(p.createdAt).toLocaleDateString('en-IN')}</div>
+          </div>
+          <div class="flex" style="flex-direction:column;align-items:flex-end;gap:6px">
+            <span class="badge ${p.status==='paid'?'in-stock':p.status==='sent'?'low-stock':'out'}">${p.status}</span>
+            ${p.status!=='paid'?`<button class="btn btn-green btn-sm" onclick="markPaid('${p._id}')">Mark Paid</button>`:''}
+          </div>
+        </div>
+      </div>`).join('');
+  }catch(e){list.innerHTML='<div class="empty">Server not connected</div>';}
+}
+
+async function sendPayment(){
+  const data={customerPhone:document.getElementById('pay-phone').value.trim(),customerName:document.getElementById('pay-name').value.trim(),productName:document.getElementById('pay-product').value.trim(),size:document.getElementById('pay-size').value.trim(),color:document.getElementById('pay-color').value.trim(),quantity:+document.getElementById('pay-qty').value||1,amount:+document.getElementById('pay-amount').value,upiId:document.getElementById('pay-upi').value.trim()||undefined,notes:document.getElementById('pay-notes').value.trim()};
+  if(!data.customerPhone||!data.productName||!data.amount){toast('Phone, product and amount are required!','err');return;}
+  try{
+    const r=await fetch(API+'/api/payments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error);
+    ['pay-phone','pay-name','pay-product','pay-size','pay-color','pay-notes','pay-upi'].forEach(id=>document.getElementById(id).value='');document.getElementById('pay-qty').value=1;document.getElementById('pay-amount').value='';
+    loadPayments();toast('Payment link sent via WhatsApp!','ok');
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+async function markPaid(id){await fetch(`${API}/api/payments/${id}/paid`,{method:'PUT'});loadPayments();toast('Marked as paid!','ok');}
+
+// ---- SCANNER ----
+function startScanner(){
+  if(scannerOn)return;
+  scanner=new Html5Qrcode('html5qr');
+  scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:200,height:200}},(text)=>{stopScanner();lookupSKU(text.trim().toUpperCase());},(e)=>{})
+  .then(()=>scannerOn=true).catch(()=>toast('Camera not available. Use manual SKU entry.','err'));
+}
+function stopScanner(){if(scanner&&scannerOn){scanner.stop().catch(()=>{});scannerOn=false;}}
+async function lookupSKU(sku){
+  if(!sku)return;
+  try{
+    const prods=await fetch(`${API}/api/products?search=${encodeURIComponent(sku)}`).then(r=>r.json());
+    if(!prods.length){toast('Product not found: '+sku,'err');return;}
+    showScanResult(prods[0]);
+  }catch(e){toast('Server not connected','err');}
+}
+function showScanResult(p){
+  editingStockProduct=p;
+  document.getElementById('scan-product-info').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+      <div><div style="font-size:18px;font-weight:700">${p.name}</div><div style="font-size:12px;color:var(--muted)">SKU: ${p.sku}</div></div>
+      <span class="badge ${p.status==='in-stock'?'in-stock':p.status==='low-stock'?'low-stock':'out'}">${(p.status||'').replace(/-/g,' ')}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+      <div style="background:var(--input-bg);border-radius:10px;padding:12px;text-align:center"><div style="font-size:24px;font-weight:700;color:var(--gold)">${p.currentStock}</div><div style="font-size:11px;color:var(--muted)">Stock</div></div>
+      <div style="background:var(--input-bg);border-radius:10px;padding:12px;text-align:center"><div style="font-size:24px;font-weight:700;color:hsl(32,90%,65%)">${p.reorderPoint}</div><div style="font-size:11px;color:var(--muted)">Reorder At</div></div>
+      <div style="background:var(--input-bg);border-radius:10px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:700;color:hsl(140,60%,55%)">Rs.${p.sellingPrice||'-'}</div><div style="font-size:11px;color:var(--muted)">Price</div></div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:14px">
+      <input id="scan-qty" type="number" value="1" min="1" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--fg);font-size:16px;outline:none;margin-bottom:8px"/>
+      <div class="flex">
+        <button class="btn btn-green" style="flex:1" onclick="scanUpdateStock('add')">+ Add Stock</button>
+        <button class="btn btn-red" style="flex:1" onclick="scanUpdateStock('sell')">- Record Sale</button>
+      </div>
+    </div>`;
+  document.getElementById('scan-result-card').classList.add('show');
+}
+async function scanUpdateStock(action){
+  const p=editingStockProduct;const qty=parseInt(document.getElementById('scan-qty').value);
+  if(!qty||qty<1){toast('Enter valid quantity','err');return;}
+  const newStock=action==='add'?p.currentStock+qty:Math.max(0,p.currentStock-qty);
+  const status=newStock===0?'out-of-stock':newStock<=p.reorderPoint?'low-stock':'in-stock';
+  try{
+    await fetch(`${API}/api/products/${p._id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({currentStock:newStock,status})});
+    if(action==='sell')await fetch(API+'/api/sales',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({productId:p._id,quantitySold:qty,revenue:(p.sellingPrice||0)*qty})});
+    p.currentStock=newStock;p.status=status;showScanResult(p);
+    toast(action==='add'?`Added ${qty} units!`:`Sold ${qty} units!`,'ok');
+  }catch(e){toast('Failed','err');}
+}
+
+// ---- ALERTS ----
+async function loadAlerts(){
+  const list=document.getElementById('alerts-list');
+  try{
+    const alerts=await fetch(API+'/api/alerts').then(r=>r.json());
+    if(!alerts.length){list.innerHTML='<div class="card empty">No alerts!</div>';return;}
+    list.innerHTML=alerts.map(a=>`
+      <div class="card" style="border-left:4px solid ${a.severity==='critical'?'hsl(0,70%,55%)':a.severity==='high'?'var(--gold)':'hsl(210,70%,55%)'}">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-weight:600;font-size:15px">${a.title}</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:3px">${a.message}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:5px">${new Date(a.createdAt).toLocaleString()}</div>
+          </div>
+          ${!a.isRead?`<button class="btn btn-gray btn-sm" onclick="markRead('${a._id}')">Mark Read</button>`:'<span style="font-size:12px;color:var(--muted)">Read</span>'}
+        </div>
+      </div>`).join('');
+  }catch(e){list.innerHTML='<div class="card empty">Server not connected</div>';}
+}
+async function markRead(id){await fetch(`${API}/api/alerts/${id}/read`,{method:'PUT'});loadAlerts();}
+
+// ---- WHATSAPP ----
+async function checkWAStatus(){
+  try{
+    const d=await fetch(API+'/api/whatsapp/status').then(r=>r.json());
+    const dot=document.getElementById('wa-dot'),txt=document.getElementById('wa-status-text');
+    if(d.isReady){dot.className='wa-dot on';txt.textContent='Connected - Ready to send alerts';txt.style.color='hsl(140,60%,55%)';}
+    else{dot.className='wa-dot off';txt.textContent=d.scanRequired?'Scan QR to connect':'Not connected';txt.style.color='hsl(0,70%,65%)';}
+  }catch(e){document.getElementById('wa-status-text').textContent='Server not running';}
+}
+async function sendTestWA(){
+  const to=document.getElementById('wa-to').value.trim(),msg=document.getElementById('wa-msg').value.trim();
+  if(!to||!msg){toast('Fill phone and message','err');return;}
+  try{
+    const d=await fetch(API+'/api/whatsapp/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({toNumber:to,message:msg})}).then(r=>r.json());
+    toast(d.success?'Message sent!':'Note: '+(d.reason||d.error),d.success?'ok':'ok');
+  }catch(e){toast('Server error','err');}
+}
+
+// ---- HELPERS ----
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+function toast(msg,type){const el=document.getElementById('toast');el.textContent=msg;el.className='show '+type;setTimeout(()=>el.className='',3000);}
+document.getElementById('manual-sku').addEventListener('keydown',e=>{if(e.key==='Enter')lookupSKU(e.target.value);});
+
+loadDashboard();
+</script>
+</body>
+</html>

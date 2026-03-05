@@ -1,0 +1,7 @@
+.env
+node_modules/
+.wwebjs_auth/
+.wwebjs_cache/
+fix_html.*
+fix-encoding.ps1
+*.log
