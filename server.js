@@ -899,12 +899,58 @@ app.put('/api/invoices/:id/finalize', async (req, res) => {
     }
     
     // Reduce stock for each item and create ledger entries
-    const user = req.body.userId || 'system'; // Should come from auth
-       const defaultWarehouse = invoice.warehouse;
+    const userId = req.body.userId || 'system';
+    
+    // Ensure we have a valid warehouse
+    let warehouseId = invoice.warehouse;
+    if (!warehouseId) {
+      // Try to get default warehouse or create one
+      let warehouse = await Warehouse.findOne({ isActive: true });
+      if (!warehouse) {
+        warehouse = new Warehouse({
+          name: 'Main Store',
+          code: 'MAIN',
+          address: 'Tubhyam Store',
+          city: 'Mumbai',
+          state: 'Maharashtra',
+          isActive: true,
+          isDefault: true
+        });
+        await warehouse.save();
+      }
+      warehouseId = warehouse._id;
+      invoice.warehouse = warehouseId;
+      await invoice.save();
+    }
+    
+    // Get or create a system user for ledger entries
+    let systemUser = await User.findOne({ username: 'system' });
+    if (!systemUser) {
+      systemUser = new User({
+        username: 'system',
+        password: 'system123',
+        name: 'System',
+        role: 'admin'
+      });
+      await systemUser.save();
+    }
+    const ledgerCreatedBy = userId === 'system' || userId === 'admin' ? systemUser._id : userId;
     
     for (const item of invoice.items) {
+      // Validate item has required fields
+      if (!item.product) {
+        console.log('Skipping item without product reference:', item);
+        continue;
+      }
+      if (!item.quantity || isNaN(item.quantity) || item.quantity <= 0) {
+        return res.status(400).json({ error: `Invalid quantity for item: ${item.name || item.sku}` });
+      }
+      
       const product = await Product.findById(item.product);
-      if (!product) continue;
+      if (!product) {
+        console.log('Product not found for item:', item.sku);
+        continue;
+      }
       
       // Calculate new stock
       const newStock = product.currentStock - item.quantity;
@@ -922,14 +968,14 @@ app.put('/api/invoices/:id/finalize', async (req, res) => {
       const ledgerEntry = new StockLedger({
         product: product._id,
         sku: product.sku,
-        warehouse: defaultWarehouse,
+        warehouse: warehouseId,
         qtyChange: -item.quantity,
         balanceAfter: newStock,
-        unitCost: product.costPrice,
-        totalValue: -item.quantity * product.costPrice,
+        unitCost: product.costPrice || 0,
+        totalValue: -item.quantity * (product.costPrice || 0),
         referenceType: 'sales',
         referenceId: invoice._id,
-        createdBy: user,
+        createdBy: ledgerCreatedBy,
         remarks: `Invoice ${invoice.invoiceNo} - ${product.name}`
       });
       await ledgerEntry.save();
@@ -1328,8 +1374,18 @@ app.get('/api/invoices/:id/pdf', async (req, res) => {
     
     if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
     
-    // Create PDF
-    const doc = new PDFDocument({ margin: 40 });
+    // Logo path
+    const logoPath = path.join(__dirname, '../src/assets/looo.png');
+    
+    // Create PDF - A4 size with compact margins
+    const doc = new PDFDocument({ 
+      size: 'A4', 
+      margin: 40,
+      info: {
+        Title: `Invoice ${invoice.invoiceNo}`,
+        Author: 'TUBHYAM'
+      }
+    });
     const buffers = [];
     
     doc.on('data', buffers.push.bind(buffers));
@@ -1341,83 +1397,157 @@ app.get('/api/invoices/:id/pdf', async (req, res) => {
         .send(pdfData);
     });
     
-    // Header
-    doc.fontSize(24).text('TUBHYAM', { align: 'center' });
-    doc.fontSize(12).text('Premium Fashion Store', { align: 'center' });
-    doc.moveDown(0.5);
+    // Colors
+    const primaryColor = '#1a1a2e';
+    const accentColor = '#e94560';
+    const grayColor = '#666666';
     
-    // Invoice details
-    doc.fontSize(10).text(`Invoice No: ${invoice.invoiceNo}`, { align: 'right' });
-    doc.text(`Date: ${new Date(invoice.invoiceDate).toLocaleDateString()}`, { align: 'right' });
-    doc.moveDown(1);
+    // ===== HEADER WITH LOGO =====
+    let y = 40;
     
-    // Customer details
-    doc.fontSize(14).text('Bill To:', { underline: true });
-    doc.fontSize(10).text(invoice.customerName);
-    if (invoice.customerGstin) doc.text(`GSTIN: ${invoice.customerGstin}`);
-    if (invoice.billingAddress) {
-      doc.text(invoice.billingAddress.address);
-      doc.text(`${invoice.billingAddress.city}, ${invoice.billingAddress.state} - ${invoice.billingAddress.pincode}`);
+    // Try to add logo
+    try {
+      if (fs.existsSync(logoPath)) {
+        doc.image(logoPath, 40, y, { width: 60, height: 60 });
+      }
+    } catch(e) {
+      console.log('Logo not found, using text header');
     }
-    doc.moveDown(1);
     
-    // Items table header
-    const tableTop = doc.y;
-    doc.fontSize(10).font('Helvetica-Bold');
-    doc.text('Item', 50, tableTop);
-    doc.text('Qty', 250, tableTop);
-    doc.text('Rate', 300, tableTop);
-    doc.text('Discount', 360, tableTop);
-    doc.text('Taxable Value', 430, tableTop);
-    doc.text('GST', 520, tableTop);
-    doc.text('Total', 570, tableTop);
+    // Company name next to logo
+    doc.fontSize(22).fillColor(primaryColor).font('Helvetica-Bold');
+    doc.text('TUBHYAM', 110, y + 10);
+    doc.fontSize(9).fillColor(grayColor).font('Helvetica');
+    doc.text('Premium Fashion Store', 110, y + 35);
     
-    // Items
-    let y = tableTop + 20;
-    doc.font('Helvetica');
-    invoice.items.forEach(item => {
-      doc.text(item.name, 50, y);
-      doc.text(item.quantity.toString(), 250, y);
-      doc.text(`₹${item.rate}`, 300, y);
-      doc.text(`₹${item.discount}`, 360, y);
-      doc.text(`₹${item.taxableValue}`, 430, y);
-      doc.text(`₹${item.cgstAmount + item.sgstAmount + item.igstAmount}`, 520, y);
-      doc.text(`₹${item.totalAmount}`, 570, y, { align: 'right' });
-      y += 20;
-    });
+    // Invoice details on right
+    doc.fontSize(9).fillColor(primaryColor).font('Helvetica-Bold');
+    doc.text('TAX INVOICE', 400, y, { align: 'right', width: 150 });
+    doc.fontSize(8).fillColor(grayColor).font('Helvetica');
+    doc.text(`Invoice No: ${invoice.invoiceNo}`, 400, y + 15, { align: 'right', width: 150 });
+    doc.text(`Date: ${new Date(invoice.invoiceDate).toLocaleDateString('en-IN')}`, 400, y + 28, { align: 'right', width: 150 });
     
-    // Totals
+    y += 75;
+    
+    // ===== HORIZONTAL LINE =====
+    doc.moveTo(40, y).lineTo(555, y).strokeColor('#e0e0e0').lineWidth(1).stroke();
+    y += 15;
+    
+    // ===== CUSTOMER DETAILS =====
+    doc.fontSize(8).fillColor(grayColor).font('Helvetica-Bold');
+    doc.text('BILL TO:', 40, y);
+    doc.fontSize(10).fillColor(primaryColor).font('Helvetica-Bold');
+    doc.text(invoice.customerName || 'Customer', 40, y + 12);
+    doc.fontSize(8).fillColor(grayColor).font('Helvetica');
+    if (invoice.customerGstin) {
+      doc.text(`GSTIN: ${invoice.customerGstin}`, 40, y + 26);
+      y += 40;
+    } else {
+      y += 28;
+    }
+    if (invoice.billingAddress) {
+      const addr = invoice.billingAddress;
+      doc.text(`${addr.city || ''}, ${addr.state || ''} - ${addr.pincode || ''}`, 40, y);
+      y += 12;
+    }
+    
     y += 10;
-    doc.moveTo(50, y).lineTo(600, y).stroke();
-    y += 10;
-    doc.font('Helvetica-Bold');
-    doc.text('Subtotal:', 430, y);
-    doc.text(`₹${invoice.subtotal}`, 570, y, { align: 'right' });
+    
+    // ===== ITEMS TABLE =====
+    // Table header background
+    doc.rect(40, y, 515, 22).fillColor('#f5f5f5').fill();
+    
+    doc.fontSize(8).fillColor(primaryColor).font('Helvetica-Bold');
+    doc.text('Item', 45, y + 6, { width: 150 });
+    doc.text('HSN', 170, y + 6, { width: 50 });
+    doc.text('Qty', 225, y + 6, { width: 30, align: 'center' });
+    doc.text('Rate', 260, y + 6, { width: 60, align: 'right' });
+    doc.text('Disc', 325, y + 6, { width: 50, align: 'right' });
+    doc.text('Taxable', 380, y + 6, { width: 60, align: 'right' });
+    doc.text('GST', 445, y + 6, { width: 50, align: 'right' });
+    doc.text('Total', 500, y + 6, { width: 50, align: 'right' });
+    
+    y += 22;
+    
+    // Table rows
+    doc.font('Helvetica').fontSize(8).fillColor('#333333');
+    let rowNum = 0;
+    for (const item of invoice.items) {
+      // Alternate row background
+      if (rowNum % 2 === 0) {
+        doc.rect(40, y, 515, 18).fillColor('#fafafa').fill();
+      }
+      
+      doc.fillColor('#333333');
+      doc.text(item.name || item.sku, 45, y + 5, { width: 150 });
+      doc.text(item.hsn || '-', 170, y + 5, { width: 50 });
+      doc.text(String(item.quantity || 1), 225, y + 5, { width: 30, align: 'center' });
+      doc.text(`₹${(item.rate || 0).toFixed(0)}`, 260, y + 5, { width: 60, align: 'right' });
+      doc.text(`₹${(item.discount || 0).toFixed(0)}`, 325, y + 5, { width: 50, align: 'right' });
+      doc.text(`₹${(item.taxableValue || 0).toFixed(0)}`, 380, y + 5, { width: 60, align: 'right' });
+      const gstAmt = (item.cgstAmount || 0) + (item.sgstAmount || 0) + (item.igstAmount || 0);
+      doc.text(`₹${gstAmt.toFixed(0)}`, 445, y + 5, { width: 50, align: 'right' });
+      doc.text(`₹${(item.totalAmount || 0).toFixed(0)}`, 500, y + 5, { width: 50, align: 'right' });
+      
+      y += 18;
+      rowNum++;
+    }
+    
+    // ===== TOTALS SECTION =====
+    y += 5;
+    doc.moveTo(350, y).lineTo(555, y).strokeColor('#e0e0e0').lineWidth(0.5).stroke();
+    y += 8;
+    
+    doc.fontSize(8).font('Helvetica').fillColor('#333333');
+    
+    // Subtotal
+    doc.text('Subtotal:', 380, y, { width: 70, align: 'right' });
+    doc.text(`₹${(invoice.subtotal || 0).toFixed(2)}`, 500, y, { width: 50, align: 'right' });
+    y += 14;
+    
+    // CGST + SGST (Intra-state)
+    if (invoice.totalCgst > 0 || invoice.totalSgst > 0) {
+      const gstRate = invoice.items[0]?.gstRate || 18;
+      doc.text(`CGST (${gstRate / 2}%):`, 380, y, { width: 70, align: 'right' });
+      doc.text(`₹${(invoice.totalCgst || 0).toFixed(2)}`, 500, y, { width: 50, align: 'right' });
+      y += 12;
+      doc.text(`SGST (${gstRate / 2}%):`, 380, y, { width: 70, align: 'right' });
+      doc.text(`₹${(invoice.totalSgst || 0).toFixed(2)}`, 500, y, { width: 50, align: 'right' });
+      y += 12;
+    }
+    
+    // IGST (Inter-state)
+    if (invoice.totalIgst > 0) {
+      const gstRate = invoice.items[0]?.gstRate || 18;
+      doc.text(`IGST (${gstRate}%):`, 380, y, { width: 70, align: 'right' });
+      doc.text(`₹${(invoice.totalIgst || 0).toFixed(2)}`, 500, y, { width: 50, align: 'right' });
+      y += 12;
+    }
+    
+    // Grand Total
+    y += 3;
+    doc.rect(350, y, 205, 20).fillColor(primaryColor).fill();
+    doc.fontSize(10).font('Helvetica-Bold').fillColor('#ffffff');
+    doc.text('Grand Total:', 380, y + 5, { width: 70, align: 'right' });
+    doc.text(`₹${(invoice.grandTotal || 0).toFixed(0)}`, 500, y + 5, { width: 50, align: 'right' });
+    y += 30;
+    
+    // ===== PAYMENT INFO =====
+    doc.fontSize(8).fillColor(grayColor).font('Helvetica');
+    doc.text(`Payment Mode: ${(invoice.paymentMode || 'cash').toUpperCase()}`, 40, y);
+    doc.text(`Status: ${invoice.paymentStatus || 'Paid'}`, 200, y);
     y += 20;
     
-    if (invoice.totalCgst > 0) {
-      doc.text(`CGST (${invoice.totalCgst}):`, 430, y);
-      doc.text(`₹${invoice.totalCgst}`, 570, y, { align: 'right' });
-      y += 20;
-    }
-    if (invoice.totalSgst > 0) {
-      doc.text(`SGST (${invoice.totalSgst}):`, 430, y);
-      doc.text(`₹${invoice.totalSgst}`, 570, y, { align: 'right' });
-      y += 20;
-    }
-    if (invoice.totalIgst > 0) {
-      doc.text(`IGST (${invoice.totalIgst}):`, 430, y);
-      doc.text(`₹${invoice.totalIgst}`, 570, y, { align: 'right' });
-      y += 20;
-    }
+    // ===== FOOTER =====
+    y += 10;
+    doc.moveTo(40, y).lineTo(555, y).strokeColor('#e0e0e0').lineWidth(0.5).stroke();
+    y += 10;
     
-    doc.fontSize(12);
-    doc.text('Grand Total:', 430, y);
-    doc.text(`₹${invoice.grandTotal}`, 570, y, { align: 'right' });
-    
-    // Footer
-    doc.fontSize(8).text('Thank you for your business!', 50, 750, { align: 'center' });
-    doc.text('Terms & Conditions apply', 50, 760, { align: 'center' });
+    doc.fontSize(8).fillColor(grayColor).font('Helvetica-Oblique');
+    doc.text('Thank you for your business!', 40, y, { align: 'center', width: 515 });
+    y += 12;
+    doc.fontSize(7);
+    doc.text('Terms & Conditions apply. This is a computer generated invoice.', 40, y, { align: 'center', width: 515 });
     
     doc.end();
   } catch (error) {

@@ -1118,7 +1118,7 @@ function openAddItemModal() {
 }
 
 function addItemToBill() {
-  const skuInput = document.getElementById('item-product-search').value; const sku = skuInput.split('(').pop().replace(')'', '').trim();
+  const skuInput = document.getElementById('item-product-search').value; const sku = skuInput.split('(').pop().replace(')', '').trim();
   const qty = parseFloat(document.getElementById('item-qty').value);
   const rate = parseFloat(document.getElementById('item-rate').value);
   const discount = parseFloat(document.getElementById('item-discount').value) || 0;
@@ -1187,7 +1187,7 @@ function renderBillItems() {
       <tr>
         <td>${item.name || item.sku}</td>
         <td>${item.sku}</td>
-        <td>${item.qty}</td>
+        <td>${item.quantity}</td>
         <td>₹${item.rate.toFixed(2)}</td>
         <td>₹${item.discount.toFixed(2)}</td>
         <td>₹${item.taxableValue.toFixed(2)}</td>
