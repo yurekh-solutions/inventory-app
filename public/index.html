@@ -135,7 +135,6 @@ tr:hover td{background:rgba(60,45,35,0.4)}
   <button class="nav-btn" onclick="go('payments',this)">Payments</button>
   <button class="nav-btn" onclick="go('scanner',this)">Scanner</button>
   <button class="nav-btn" onclick="go('alerts',this)">Alerts</button>
-  <button class="nav-btn" onclick="go('settings',this)">Settings</button>
   <button class="nav-btn" onclick="go('whatsapp',this)">WhatsApp</button>
 </nav>
 
@@ -151,9 +150,10 @@ tr:hover td{background:rgba(60,45,35,0.4)}
         </select>
       </div>
       <div class="field">
-        <label>Warehouse *</label>
-        <select id="bill-warehouse-select" style="width:100%">
-          <option value="">Select Warehouse</option>
+        <label>Customer State (for GST)</label>
+        <select id="bill-customer-state" style="width:100%">
+          <option value="Maharashtra">Maharashtra (Intra-state - CGST+SGST)</option>
+          <option value="other">Other Indian States (Inter-state - IGST)</option>
         </select>
       </div>
       <div class="field">
@@ -503,64 +503,6 @@ tr:hover td{background:rgba(60,45,35,0.4)}
   <div id="alerts-list"><div class="spinner"></div></div>
 </div>
 
-<!-- SETTINGS -->
-<div class="page" id="page-settings">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-    <div>
-      <div class="card">
-        <h2>Warehouses</h2>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Add your store locations</p>
-        <div class="form-grid">
-          <div class="field"><label>Warehouse Name *</label><input id="wh-name" placeholder="Main Store"/></div>
-          <div class="field"><label>Warehouse Code *</label><input id="wh-code" placeholder="WH-MAIN"/></div>
-          <div class="field"><label>City</label><input id="wh-city" placeholder="Mumbai"/></div>
-          <div class="field"><label>State</label>
-            <select id="wh-state" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg)">
-              <option value="Maharashtra">Maharashtra</option>
-              <option value="Delhi">Delhi</option>
-              <option value="Gujarat">Gujarat</option>
-              <option value="Karnataka">Karnataka</option>
-            </select>
-          </div>
-        </div>
-        <button class="btn btn-blue" style="width:100%;margin-top:10px" onclick="addWarehouse()">Add Warehouse</button>
-        <div id="wh-list" style="margin-top:16px"></div>
-      </div>
-    </div>
-    <div>
-      <div class="card">
-        <h2>Billing Customers</h2>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Customers for GST invoices</p>
-        <div class="form-grid">
-          <div class="field"><label>Name *</label><input id="bcust-name" placeholder="ABC Retail"/></div>
-          <div class="field"><label>Phone *</label><input id="bcust-phone" placeholder="9876543210"/></div>
-          <div class="field"><label>GSTIN</label><input id="bcust-gstin" placeholder="27AAPFU1234A1Z5"/></div>
-          <div class="field"><label>Type</label>
-            <select id="bcust-type" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--fg)">
-              <option value="retail">Retail</option>
-              <option value="wholesale">Wholesale</option>
-              <option value="corporate">Corporate</option>
-            </select>
-          </div>
-        </div>
-        <div class="field" style="margin-top:10px"><label>Billing Address</label><input id="bcust-address" placeholder="Shop No. 123, Main Road"/></div>
-        <div class="form-grid" style="margin-top:10px">
-          <div class="field"><label>City</label><input id="bcust-city" placeholder="Mumbai"/></div>
-          <div class="field"><label>State</label>
-            <select id="bcust-state" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--fg)">
-              <option value="Maharashtra">Maharashtra</option>
-              <option value="Delhi">Delhi</option>
-              <option value="Gujarat">Gujarat</option>
-              <option value="Karnataka">Karnataka</option>
-            </select>
-          </div>
-        </div>
-        <button class="btn btn-blue" style="width:100%;margin-top:10px" onclick="addBillingCustomer()">Add Billing Customer</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- WHATSAPP -->
 <div class="page" id="page-whatsapp">
   <div style="max-width:480px;margin:0 auto">
@@ -749,7 +691,6 @@ function go(page, btn) {
   if(page==='payments') loadPayments();
   if(page==='alerts') loadAlerts();
   if(page==='scanner') startScanner();
-  if(page==='settings') loadSettings();
   if(page==='whatsapp') checkWAStatus();
   if(page!=='scanner' && scannerOn) stopScanner();
 }
@@ -1074,107 +1015,56 @@ async function sendTestWA(){
   }catch(e){toast('Server error','err');}
 }
 
-// ---- SETTINGS ----
-async function loadSettings(){
-  try{
-    const whs = await fetch(API + '/api/warehouses').then(r => r.json());
-    const whList = document.getElementById('wh-list');
-    if(!whs.length){
-      whList.innerHTML = '<p class="empty">No warehouses yet</p>';
-    }else{
-      whList.innerHTML = whs.map(w => `
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
-          <div><strong>${w.name}</strong> <span style="color:var(--muted)">(${w.code})</span></div>
-          <span style="font-size:12px;color:var(--muted)">${w.city||''}, ${w.state||''}</span>
-        </div>
-      `).join('');
-    }
-  }catch(e){}
-}
-
-async function addWarehouse(){
-  const name = document.getElementById('wh-name').value.trim();
-  const code = document.getElementById('wh-code').value.trim().toUpperCase();
-  const city = document.getElementById('wh-city').value.trim();
-  const state = document.getElementById('wh-state').value;
-  
-  if(!name || !code){toast('Name and Code are required','err');return;}
-  
-  try{
-    const r = await fetch(API + '/api/warehouses', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({name, code, city, state, isActive: true})
-    });
-    if(!r.ok) throw new Error((await r.json()).error);
-    toast('Warehouse added!','ok');
-    document.getElementById('wh-name').value = '';
-    document.getElementById('wh-code').value = '';
-    loadSettings();
-    loadBillingDropdowns();
-  }catch(e){toast('Error: '+e.message,'err');}
-}
-
-async function addBillingCustomer(){
-  const name = document.getElementById('bcust-name').value.trim();
-  const phone = document.getElementById('bcust-phone').value.trim();
-  const gstin = document.getElementById('bcust-gstin').value.trim();
-  const type = document.getElementById('bcust-type').value;
-  const address = document.getElementById('bcust-address').value.trim();
-  const city = document.getElementById('bcust-city').value.trim();
-  const state = document.getElementById('bcust-state').value;
-  
-  if(!name || !phone){toast('Name and Phone are required','err');return;}
-  
-  try{
-    const r = await fetch(API + '/api/billing-customers', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        name, phone, gstin, type,
-        billingAddress: { address, city, state, country: 'India' }
-      })
-    });
-    if(!r.ok) throw new Error((await r.json()).error);
-    toast('Billing customer added!','ok');
-    document.getElementById('bcust-name').value = '';
-    document.getElementById('bcust-phone').value = '';
-    document.getElementById('bcust-gstin').value = '';
-    document.getElementById('bcust-address').value = '';
-    document.getElementById('bcust-city').value = '';
-    loadBillingDropdowns();
-  }catch(e){toast('Error: '+e.message,'err');}
-}
-
 // ---- BILLING / INVOICING FUNCTIONS ----
 let billItems = [];
 let currentInvoiceId = null;
+let billingCustomers = []; // Store customers for billing
 
-// Load customers and warehouses for billing dropdown
+// Load customers for billing dropdown (from your existing Customers tab)
 async function loadBillingDropdowns() {
   try {
-    const customers = await fetch(API + '/api/billing-customers').then(r => r.json());
+    // Load from your existing customers (not billing-customers)
+    const customers = await fetch(API + '/api/customers?status=active').then(r => r.json());
+    billingCustomers = customers; // Store for later use
+    
     const custSelect = document.getElementById('bill-customer-select');
     if (custSelect) {
-      custSelect.innerHTML = '<option value="">Select Customer</option>' +
-        customers.map(c => `<option value="${c._id}">${c.name} - ${c.phone}</option>`).join('');
+      if (!customers || customers.length === 0) {
+        custSelect.innerHTML = '<option value="">No customers - Add in Customers tab first</option>';
+      } else {
+        custSelect.innerHTML = '<option value="">Select Customer</option>' +
+          customers.map(c => `<option value="${c._id}" data-state="${c.state || ''}">${c.name} - ${c.phone}${c.city ? ' (' + c.city + ')' : ''}</option>`).join('');
+      }
     }
     
+    // Update customer state dropdown when customer is selected
+    const custSelectEl = document.getElementById('bill-customer-select');
+    if (custSelectEl) {
+      custSelectEl.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const customerState = selectedOption.getAttribute('data-state');
+        const stateSelect = document.getElementById('bill-customer-state');
+        if (stateSelect && customerState) {
+          if (customerState === 'Maharashtra') {
+            stateSelect.value = 'Maharashtra';
+          } else {
+            stateSelect.value = 'other';
+          }
+        }
+      });
+    }
+    
+    // Load warehouses only for stock operations (not required for billing)
     const warehouses = await fetch(API + '/api/warehouses').then(r => r.json());
-    const whSelect = document.getElementById('bill-warehouse-select');
     const adjWhSelect = document.getElementById('adjust-warehouse');
     const importWhSelect = document.getElementById('import-warehouse');
     
-    if (whSelect) {
-      whSelect.innerHTML = '<option value="">Select Warehouse</option>' +
-        warehouses.map(w => `<option value="${w._id}">${w.name} (${w.code})</option>`).join('');
-    }
     if (adjWhSelect) {
-      adjWhSelect.innerHTML = '<option value="">Select Warehouse</option>' +
+      adjWhSelect.innerHTML = '<option value="">Select Warehouse (optional)</option>' +
         warehouses.map(w => `<option value="${w._id}">${w.name}</option>`).join('');
     }
     if (importWhSelect) {
-      importWhSelect.innerHTML = '<option value="">Select Warehouse</option>' +
+      importWhSelect.innerHTML = '<option value="">Select Warehouse (optional)</option>' +
         warehouses.map(w => `<option value="${w._id}">${w.name}</option>`).join('');
     }
   } catch (e) {
@@ -1239,18 +1129,37 @@ function addItemToBill() {
     return;
   }
   
-  // Calculate GST
+  // Get customer state for GST calculation
+  const customerState = document.getElementById('bill-customer-state')?.value || 'Maharashtra';
+  const isInterstate = customerState !== 'Maharashtra';
+  
+  // Calculate GST based on state (intra-state = CGST+SGST, inter-state = IGST)
   const taxableValue = (rate * qty) - discount;
-  const gstAmount = (taxableValue * gstRate) / 100;
+  
+  let cgstAmount = 0, sgstAmount = 0, igstAmount = 0;
+  if (isInterstate) {
+    // Inter-state: IGST (full GST)
+    igstAmount = (taxableValue * gstRate) / 100;
+  } else {
+    // Intra-state: CGST + SGST (half each)
+    cgstAmount = (taxableValue * gstRate) / 200;
+    sgstAmount = (taxableValue * gstRate) / 200;
+  }
+  const gstAmount = cgstAmount + sgstAmount + igstAmount;
   const totalAmount = taxableValue + gstAmount;
   
   billItems.push({
     sku,
+    name: document.getElementById('item-product-search').value.split('(')[0].trim(),
     qty,
     rate,
     discount,
     gstRate,
+    isInterstate,
     taxableValue,
+    cgstAmount,
+    sgstAmount,
+    igstAmount,
     gstAmount,
     totalAmount
   });
@@ -1272,28 +1181,40 @@ function renderBillItems() {
   if (billItems.length === 0) {
     tbody.innerHTML = '<tr><td colspan="9" class="empty">No items added yet</td></tr>';
   } else {
+    // Get GST type from first item (all items should have same type)
+    const gstType = billItems[0]?.isInterstate ? 'IGST' : 'CGST+SGST';
     tbody.innerHTML = billItems.map((item, idx) => `
       <tr>
-        <td>${item.sku}</td>
+        <td>${item.name || item.sku}</td>
         <td>${item.sku}</td>
         <td>${item.qty}</td>
         <td>₹${item.rate.toFixed(2)}</td>
         <td>₹${item.discount.toFixed(2)}</td>
         <td>₹${item.taxableValue.toFixed(2)}</td>
-        <td>₹${item.gstAmount.toFixed(2)}</td>
+        <td>₹${item.gstAmount.toFixed(2)} <small style="color:var(--muted)">(${item.isInterstate ? 'IGST' : 'CGST+SGST'})</small></td>
         <td>₹${item.totalAmount.toFixed(2)}</td>
         <td><button class="btn btn-red btn-sm" onclick="removeBillItem(${idx})">Remove</button></td>
       </tr>
     `).join('');
   }
   
-  // Update totals
+  // Update totals with proper GST breakdown
   const subtotal = billItems.reduce((sum, item) => sum + item.taxableValue, 0);
-  const totalGst = billItems.reduce((sum, item) => sum + item.gstAmount, 0);
+  const totalCgst = billItems.reduce((sum, item) => sum + item.cgstAmount, 0);
+  const totalSgst = billItems.reduce((sum, item) => sum + item.sgstAmount, 0);
+  const totalIgst = billItems.reduce((sum, item) => sum + item.igstAmount, 0);
+  const totalGst = totalCgst + totalSgst + totalIgst;
   const grandTotal = billItems.reduce((sum, item) => sum + item.totalAmount, 0);
   
   document.getElementById('bill-subtotal').textContent = `₹${subtotal.toFixed(2)}`;
-  document.getElementById('bill-gst').textContent = `₹${totalGst.toFixed(2)}`;
+  
+  // Show GST breakdown
+  const customerState = document.getElementById('bill-customer-state')?.value || 'Maharashtra';
+  if (customerState === 'Maharashtra') {
+    document.getElementById('bill-gst').textContent = `₹${totalGst.toFixed(2)} (CGST: ₹${totalCgst.toFixed(2)} + SGST: ₹${totalSgst.toFixed(2)})`;
+  } else {
+    document.getElementById('bill-gst').textContent = `₹${totalIgst.toFixed(2)} (IGST)`;
+  }
   document.getElementById('bill-grand-total').textContent = `₹${grandTotal.toFixed(2)}`;
 }
 
@@ -1306,7 +1227,7 @@ function clearBill() {
   billItems = [];
   currentInvoiceId = null;
   document.getElementById('bill-customer-select').value = '';
-  document.getElementById('bill-warehouse-select').value = '';
+  document.getElementById('bill-customer-state').value = 'Maharashtra';
   document.getElementById('bill-payment-mode').value = 'cash';
   document.getElementById('bill-remarks').value = '';
   renderBillItems();
@@ -1315,13 +1236,35 @@ function clearBill() {
 
 async function saveInvoiceDraft() {
   const customerId = document.getElementById('bill-customer-select').value;
-  const warehouseId = document.getElementById('bill-warehouse-select').value;
+  const customerState = document.getElementById('bill-customer-state').value;
   const paymentMode = document.getElementById('bill-payment-mode').value;
   const remarks = document.getElementById('bill-remarks').value;
   
-  if (!customerId || !warehouseId || billItems.length === 0) {
-    toast('Please select customer, warehouse, and add items', 'err');
+  if (!customerId) {
+    toast('Please select a customer', 'err');
     return;
+  }
+  if (billItems.length === 0) {
+    toast('Please add at least one item', 'err');
+    return;
+  }
+  
+  // Get customer details from the stored customers
+  const customer = billingCustomers.find(c => c._id === customerId);
+  if (!customer) {
+    toast('Customer not found', 'err');
+    return;
+  }
+  
+  // Get or create default warehouse (single vendor - use default)
+  let warehouseId = 'default-warehouse';
+  try {
+    const warehouses = await fetch(API + '/api/warehouses').then(r => r.json());
+    if (warehouses && warehouses.length > 0) {
+      warehouseId = warehouses[0]._id; // Use first warehouse
+    }
+  } catch(e) {
+    // Use default if warehouses not available
   }
   
   try {
@@ -1330,10 +1273,20 @@ async function saveInvoiceDraft() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         customer: customerId,
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        customerState: customer.state || customerState,
         items: billItems,
-        warehouseId,
+        warehouseId: warehouseId,
         paymentMode,
-        remarks
+        remarks,
+        customerGstin: customer.gstin || '',
+        billingAddress: {
+          address: customer.address || '',
+          city: customer.city || '',
+          state: customer.state || customerState,
+          pincode: customer.pincode || ''
+        }
       })
     });
     

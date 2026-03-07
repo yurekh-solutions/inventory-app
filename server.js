@@ -42,6 +42,23 @@ app.get('/', (req, res) => {
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/tubhyam-inventory')
   .then(async () => {
     console.log('✅ MongoDB Connected');
+    
+    // Auto-create default warehouse if none exists
+    const warehouseCount = await Warehouse.countDocuments();
+    if (warehouseCount === 0) {
+      const defaultWarehouse = new Warehouse({
+        name: 'Main Store',
+        code: 'MAIN',
+        address: 'Tubhyam Fashion Store',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        isActive: true,
+        isDefault: true
+      });
+      await defaultWarehouse.save();
+      console.log('✅ Created default warehouse: Main Store');
+    }
+    
     // Auto-seed Tubhyam products if DB is empty
     const count = await Product.countDocuments();
     if (count === 0) {
@@ -717,21 +734,58 @@ app.post('/api/warehouses', async (req, res) => {
 // Create invoice (draft)
 app.post('/api/invoices', async (req, res) => {
   try {
-    const { customer, items, warehouseId, paymentMode, remarks } = req.body;
+    const { customer, customerName, customerPhone, customerState, items, warehouseId, paymentMode, remarks, customerGstin, billingAddress } = req.body;
     
     if (!customer || !items || items.length === 0) {
       return res.status(400).json({ error: 'Customer and items are required' });
     }
     
-    // Fetch customer and warehouse details
-    const customerDoc = await BillingCustomer.findById(customer);
-    if (!customerDoc) return res.status(404).json({ error: 'Customer not found' });
+    // Try to find customer - first check BillingCustomer, then regular Customer
+    let customerDoc = await BillingCustomer.findById(customer);
+    let customerFromRegular = null;
     
-    const warehouse = await Warehouse.findById(warehouseId);
-    if (!warehouse) return res.status(404).json({ error: 'Warehouse not found' });
+    if (!customerDoc) {
+      // Try regular Customer collection
+      customerFromRegular = await Customer.findById(customer);
+      if (!customerFromRegular) {
+        return res.status(404).json({ error: 'Customer not found. Please add customer first.' });
+      }
+    }
     
-    // Check if interstate (different state than warehouse)
-    const isInterstate = customerDoc.billingAddress?.state !== 'Maharashtra'; // Default warehouse state
+    // Get or create default warehouse
+    let warehouse = await Warehouse.findById(warehouseId);
+    if (!warehouse) {
+      // Try to find any existing warehouse
+      warehouse = await Warehouse.findOne({ isActive: true });
+      if (!warehouse) {
+        // Create default warehouse for single-vendor setup
+        warehouse = new Warehouse({
+          name: 'Main Store',
+          code: 'MAIN',
+          address: 'Tubhyam Store',
+          city: 'Mumbai',
+          state: 'Maharashtra',
+          isActive: true,
+          isDefault: true
+        });
+        await warehouse.save();
+      }
+    }
+    
+    // Determine if interstate based on customer state (if provided) or billing address
+    const custState = customerState || billingAddress?.state || customerFromRegular?.state || 'Maharashtra';
+    const isInterstate = custState !== 'Maharashtra';
+    
+    // Use customer info from regular Customer if available
+    const finalCustomerName = customerName || customerFromRegular?.name || customerDoc?.name;
+    const finalCustomerPhone = customerPhone || customerFromRegular?.phone || customerDoc?.phone;
+    const finalCustomerGstin = customerGstin || customerFromRegular?.gstin || customerDoc?.gstin || '';
+    const finalBillingAddress = billingAddress || {
+      address: customerFromRegular?.address || customerDoc?.billingAddress?.address || '',
+      city: customerFromRegular?.city || customerDoc?.billingAddress?.city || '',
+      state: custState,
+      pincode: customerFromRegular?.pincode || customerDoc?.billingAddress?.pincode || ''
+    };
     
     // Process items with GST calculation and stock validation
     const processedItems = [];
@@ -797,11 +851,11 @@ app.post('/api/invoices', async (req, res) => {
     const invoice = new Invoice({
       invoiceNo: generateInvoiceNumber(new Date().getFullYear()),
       invoiceDate: new Date(),
-      customer: customerDoc._id,
-      customerName: customerDoc.name,
-      customerGstin: customerDoc.gstin,
-      billingAddress: customerDoc.billingAddress,
-      shippingAddress: customerDoc.shippingAddress,
+      customer: customerDoc?._id || customerFromRegular?._id,
+      customerName: finalCustomerName,
+      customerGstin: finalCustomerGstin,
+      billingAddress: finalBillingAddress,
+      shippingAddress: finalBillingAddress,
       items: processedItems,
       subtotal,
       totalDiscount,
@@ -885,16 +939,30 @@ app.put('/api/invoices/:id/finalize', async (req, res) => {
     invoice.status = 'finalized';
     invoice.finalizedAt = new Date();
     await invoice.save();
-    
-    // Update customer totals
-    await BillingCustomer.findByIdAndUpdate(invoice.customer._id, {
-      $inc: {
-        totalOrders: 1,
-        totalSpent: invoice.grandTotal,
-        outstandingAmount: invoice.balanceDue
+        
+    // Update customer totals - try BillingCustomer first, then regular Customer
+    try {
+      await BillingCustomer.findByIdAndUpdate(invoice.customer, {
+        $inc: {
+          totalOrders: 1,
+          totalSpent: invoice.grandTotal,
+          outstandingAmount: invoice.balanceDue
+        }
+      });
+    } catch(e) {
+      // If not in BillingCustomer, try regular Customer
+      try {
+        await Customer.findByIdAndUpdate(invoice.customer, {
+          $inc: {
+            totalOrders: 1,
+            totalSpent: invoice.grandTotal
+          }
+        });
+      } catch(e2) {
+        console.log('Could not update customer totals:', e2.message);
       }
-    });
-    
+    }
+        
     res.json({ message: 'Invoice finalized successfully', invoice });
   } catch (error) {
     console.error('Finalize invoice error:', error);
