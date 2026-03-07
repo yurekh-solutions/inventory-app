@@ -773,7 +773,7 @@ async function doStockUpdate(action){
   const status=newStock===0?'out-of-stock':newStock<=p.reorderPoint?'low-stock':'in-stock';
   try{
     await fetch(`${API}/api/products/${p._id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({currentStock:newStock,status})});
-    if(action==='sell')await fetch(API+'/api/sales',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({productId:p._id,quantitySold:qty,revenue:(p.sellingPrice||0)*qty})});
+    if(action==='sell')await fetch(API+'/api/sales',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({productId:p._id,quantitySold: qty,revenue:(p.sellingPrice||0)*qty})});
     closeModal('modal-stock');loadProducts();toast(action==='add'?`Added ${qty} units!`:`Sold ${qty} units!`,'ok');
   }catch(e){toast('Failed: '+e.message,'err');}
 }
@@ -970,7 +970,7 @@ async function scanUpdateStock(action){
   const status=newStock===0?'out-of-stock':newStock<=p.reorderPoint?'low-stock':'in-stock';
   try{
     await fetch(`${API}/api/products/${p._id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({currentStock:newStock,status})});
-    if(action==='sell')await fetch(API+'/api/sales',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({productId:p._id,quantitySold:qty,revenue:(p.sellingPrice||0)*qty})});
+    if(action==='sell')await fetch(API+'/api/sales',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({productId:p._id,quantitySold: qty,revenue:(p.sellingPrice||0)*qty})});
     p.currentStock=newStock;p.status=status;showScanResult(p);
     toast(action==='add'?`Added ${qty} units!`:`Sold ${qty} units!`,'ok');
   }catch(e){toast('Failed','err');}
@@ -1118,13 +1118,13 @@ function openAddItemModal() {
 }
 
 function addItemToBill() {
-  const sku = document.getElementById('item-product-search').value.split('(').pop().replace(')', '').trim();
+  const skuInput = document.getElementById(\x27item-product-search\x27).value; const sku = skuInput.split(\x27(\x27).pop().replace(\x27)', '').trim();
   const qty = parseFloat(document.getElementById('item-qty').value);
   const rate = parseFloat(document.getElementById('item-rate').value);
   const discount = parseFloat(document.getElementById('item-discount').value) || 0;
   const gstRate = parseFloat(document.getElementById('item-gst').value);
   
-  if (!sku || !qty || !rate) {
+  if (!sku || !qty || isNaN(qty) || !rate || isNaN(rate)) {
     toast('Please fill all required fields', 'err');
     return;
   }
@@ -1134,7 +1134,7 @@ function addItemToBill() {
   const isInterstate = customerState !== 'Maharashtra';
   
   // Calculate GST based on state (intra-state = CGST+SGST, inter-state = IGST)
-  const taxableValue = (rate * qty) - discount;
+  const taxableValue = (rate * qty) - discount; if (isNaN(taxableValue)) { toast(\x27Invalid calculation\x27, \x27err\x27); return; }
   
   let cgstAmount = 0, sgstAmount = 0, igstAmount = 0;
   if (isInterstate) {
@@ -1150,17 +1150,17 @@ function addItemToBill() {
   
   billItems.push({
     sku,
-    name: document.getElementById('item-product-search').value.split('(')[0].trim(),
-    qty,
+    name: skuInput.split(\x27(\x27)[0].trim(),
+    quantity: qty,
     rate,
     discount,
     gstRate,
     isInterstate,
-    taxableValue,
-    cgstAmount,
-    sgstAmount,
-    igstAmount,
-    gstAmount,
+    taxableValue: Number(taxableValue.toFixed(2)),
+    cgstAmount: Number(cgstAmount.toFixed(2)),
+    sgstAmount: Number(sgstAmount.toFixed(2)),
+    igstAmount: Number(igstAmount.toFixed(2)),
+    gstAmount: Number(gstAmount.toFixed(2)),
     totalAmount
   });
   
@@ -1200,9 +1200,9 @@ function renderBillItems() {
   
   // Update totals with proper GST breakdown
   const subtotal = billItems.reduce((sum, item) => sum + item.taxableValue, 0);
-  const totalCgst = billItems.reduce((sum, item) => sum + item.cgstAmount, 0);
-  const totalSgst = billItems.reduce((sum, item) => sum + item.sgstAmount, 0);
-  const totalIgst = billItems.reduce((sum, item) => sum + item.igstAmount, 0);
+  const totalCgst = billItems.reduce((sum, item) => sum + item.cgstAmount: Number(cgstAmount.toFixed(2)), 0);
+  const totalSgst = billItems.reduce((sum, item) => sum + item.sgstAmount: Number(sgstAmount.toFixed(2)), 0);
+  const totalIgst = billItems.reduce((sum, item) => sum + item.igstAmount: Number(igstAmount.toFixed(2)), 0);
   const totalGst = totalCgst + totalSgst + totalIgst;
   const grandTotal = billItems.reduce((sum, item) => sum + item.totalAmount, 0);
   
@@ -1703,3 +1703,12 @@ loadDashboard();
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
