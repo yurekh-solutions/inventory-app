@@ -124,6 +124,11 @@ tr:hover td{background:rgba(60,45,35,0.4)}
 <nav>
   <div class="logo">Tubhyam</div>
   <button class="nav-btn active" onclick="go('dashboard',this)">Dashboard</button>
+  <button class="nav-btn" onclick="go('billing',this)">Billing</button>
+  <button class="nav-btn" onclick="go('invoices',this)">Invoices</button>
+  <button class="nav-btn" onclick="go('stock-ledger',this)">Stock Ledger</button>
+  <button class="nav-btn" onclick="go('import',this)">Import</button>
+  <button class="nav-btn" onclick="go('reports',this)">Reports</button>
   <button class="nav-btn" onclick="go('products',this)">Products</button>
   <button class="nav-btn" onclick="go('customers',this)">Customers</button>
   <button class="nav-btn" onclick="go('broadcast',this)">Broadcast</button>
@@ -132,6 +137,211 @@ tr:hover td{background:rgba(60,45,35,0.4)}
   <button class="nav-btn" onclick="go('alerts',this)">Alerts</button>
   <button class="nav-btn" onclick="go('whatsapp',this)">WhatsApp</button>
 </nav>
+
+<!-- BILLING / CREATE INVOICE -->
+<div class="page" id="page-billing">
+  <div class="card">
+    <h2>Create GST Invoice</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label>Customer *</label>
+        <select id="bill-customer-select" style="width:100%">
+          <option value="">Select Customer</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Warehouse *</label>
+        <select id="bill-warehouse-select" style="width:100%">
+          <option value="">Select Warehouse</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Payment Mode</label>
+        <select id="bill-payment-mode" style="width:100%">
+          <option value="cash">Cash</option>
+          <option value="upi">UPI</option>
+          <option value="bank">Bank Transfer</option>
+          <option value="credit">Credit</option>
+          <option value="card">Card</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Remarks</label>
+        <input type="text" id="bill-remarks" placeholder="Optional notes"/>
+      </div>
+    </div>
+    
+    <div class="mt" style="margin-top:20px">
+      <button class="btn btn-blue" onclick="openAddItemModal()">+ Add Item</button>
+    </div>
+    
+    <div class="tbl-wrap mt" style="margin-top:16px">
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>SKU</th>
+            <th>Qty</th>
+            <th>Rate</th>
+            <th>Discount</th>
+            <th>Taxable Value</th>
+            <th>GST</th>
+            <th>Total</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="bill-items-tbody"></tbody>
+      </table>
+    </div>
+    
+    <div class="mt" style="margin-top:20px;text-align:right">
+      <div style="font-size:14px;margin-bottom:8px">
+        <span>Subtotal: </span>
+        <strong id="bill-subtotal">₹0.00</strong>
+      </div>
+      <div style="font-size:14px;margin-bottom:8px">
+        <span>GST: </span>
+        <strong id="bill-gst">₹0.00</strong>
+      </div>
+      <div style="font-size:16px;font-family:var(--font-serif);color:var(--gold)">
+        <span>Grand Total: </span>
+        <strong id="bill-grand-total">₹0.00</strong>
+      </div>
+    </div>
+    
+    <div class="flex mt" style="justify-content:flex-end;margin-top:20px">
+      <button class="btn btn-gray" onclick="clearBill()">Clear</button>
+      <button class="btn btn-blue" onclick="saveInvoiceDraft()">Save Draft</button>
+      <button class="btn btn-green" onclick="finalizeInvoice()">Finalize & Generate PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- INVOICES LIST -->
+<div class="page" id="page-invoices">
+  <div class="flex" style="margin-bottom:16px">
+    <input id="invoice-search" placeholder="Search invoice no..." style="flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--fg);font-size:14px;outline:none;font-family:var(--font-sans)" oninput="loadInvoices()"/>
+    <select id="invoice-filter-status" onchange="loadInvoices()" style="background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--fg);font-size:14px;outline:none;font-family:var(--font-sans)">
+      <option value="">All Status</option>
+      <option value="draft">Draft</option>
+      <option value="finalized">Finalized</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Invoice No</th>
+            <th>Date</th>
+            <th>Customer</th>
+            <th>Amount</th>
+            <th>Payment</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="invoice-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- STOCK LEDGER -->
+<div class="page" id="page-stock-ledger">
+  <div class="flex" style="margin-bottom:16px">
+    <input id="ledger-product-search" placeholder="Search by SKU or product..." style="flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--fg);font-size:14px;outline:none;font-family:var(--font-sans)" oninput="loadStockLedger()"/>
+    <select id="ledger-type-filter" onchange="loadStockLedger()" style="background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--fg);font-size:14px;outline:none;font-family:var(--font-sans)">
+      <option value="">All Types</option>
+      <option value="opening">Opening Stock</option>
+      <option value="purchase">Purchase In</option>
+      <option value="sales">Sales Out</option>
+      <option value="adjustment">Adjustment</option>
+      <option value="production-consume">Production Consume</option>
+      <option value="production-output">Production Output</option>
+    </select>
+    <button class="btn btn-blue" onclick="openStockAdjustModal()">Adjust Stock</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Product</th>
+            <th>SKU</th>
+            <th>Type</th>
+            <th>Change</th>
+            <th>Balance</th>
+            <th>Unit Cost</th>
+            <th>Value</th>
+            <th>Reason/Ref</th>
+          </tr>
+        </thead>
+        <tbody id="ledger-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT EXCEL -->
+<div class="page" id="page-import">
+  <div class="card">
+    <h2>Bulk Import from Excel</h2>
+    <h3>Step 1: Download Template</h3>
+    <div class="flex">
+      <button class="btn btn-blue" onclick="downloadProductTemplate()">Download Product Template</button>
+      <button class="btn btn-blue" onclick="downloadStockTemplate()">Download Opening Stock Template</button>
+    </div>
+    
+    <h3 style="margin-top:20px">Step 2: Upload Excel Data</h3>
+    <div class="form-grid">
+      <div class="field">
+        <label>Import Type</label>
+        <select id="import-type" style="width:100%">
+          <option value="products">Products Master</option>
+          <option value="opening-stock">Opening Stock</option>
+        </select>
+      </div>
+      <div class="field" id="warehouse-field" style="display:none">
+        <label>Warehouse (for stock import)</label>
+        <select id="import-warehouse" style="width:100%">
+          <option value="">Select Warehouse</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="mt">
+      <textarea id="excel-data" placeholder="Paste your Excel data here (copy from Excel and paste)" rows="10" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--fg);font-size:13px;font-family:monospace"></textarea>
+    </div>
+    
+    <div class="flex mt">
+      <button class="btn btn-blue" onclick="processExcelImport()">Import Data</button>
+      <button class="btn btn-gray" onclick="document.getElementById('excel-data').value=''">Clear</button>
+    </div>
+    
+    <div id="import-result" class="mt" style="display:none"></div>
+  </div>
+</div>
+
+<!-- REPORTS -->
+<div class="page" id="page-reports">
+  <div class="card">
+    <h2>Inventory & Sales Reports</h2>
+    <div class="flex" style="margin-bottom:20px">
+      <button class="btn btn-blue" onclick="loadStockOnHand()">Stock on Hand</button>
+      <button class="btn btn-blue" onclick="loadLowStockReport()">Low Stock Alert</button>
+      <button class="btn btn-blue" onclick="loadSalesReport()">Sales Report</button>
+      <button class="btn btn-blue" onclick="loadProfitReport()">Profit Report</button>
+    </div>
+  </div>
+  
+  <div id="report-container" class="card" style="display:none">
+    <h3 id="report-title">Report Title</h3>
+    <div id="report-content"></div>
+  </div>
+</div>
 
 <!-- DASHBOARD -->
 <div class="page active" id="page-dashboard">
@@ -388,6 +598,74 @@ tr:hover td{background:rgba(60,45,35,0.4)}
       <button class="btn btn-green" style="flex:1" onclick="doStockUpdate('add')">+ Add Stock</button>
       <button class="btn btn-red" style="flex:1" onclick="doStockUpdate('sell')">- Sell / Remove</button>
       <button class="btn btn-gray" onclick="closeModal('modal-stock')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD ITEM MODAL (for billing) -->
+<div class="modal-bg" id="modal-add-item">
+  <div class="modal">
+    <h3>Add Item to Invoice</h3>
+    <div class="field" style="margin-bottom:10px">
+      <label>Product SKU or Name</label>
+      <input id="item-product-search" type="text" placeholder="Search product..." oninput="searchProductsForBill()"/>
+      <div id="item-search-results" style="max-height:150px;overflow-y:auto;margin-top:8px;border:1px solid var(--border);border-radius:8px;display:none"></div>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Quantity *</label>
+        <input id="item-qty" type="number" min="1" value="1" placeholder="Enter quantity"/>
+      </div>
+      <div class="field">
+        <label>Rate (Rs.) *</label>
+        <input id="item-rate" type="number" min="0" step="0.01" placeholder="Selling price"/>
+      </div>
+      <div class="field">
+        <label>Discount (Rs.)</label>
+        <input id="item-discount" type="number" min="0" step="0.01" value="0" placeholder="Optional discount"/>
+      </div>
+      <div class="field">
+        <label>GST Rate (%)</label>
+        <select id="item-gst">
+          <option value="5">5%</option>
+          <option value="12">12%</option>
+          <option value="18" selected>18%</option>
+          <option value="28">28%</option>
+        </select>
+      </div>
+    </div>
+    <div class="flex mt">
+      <button class="btn btn-blue" style="flex:1" onclick="addItemToBill()">Add Item</button>
+      <button class="btn btn-gray" onclick="closeModal('modal-add-item')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- STOCK ADJUST MODAL -->
+<div class="modal-bg" id="modal-stock-adjust">
+  <div class="modal">
+    <h3>Adjust Stock</h3>
+    <div class="field" style="margin-bottom:10px">
+      <label>Product SKU</label>
+      <input id="adjust-sku" type="text" placeholder="Enter SKU"/>
+    </div>
+    <div class="field" style="margin-bottom:10px">
+      <label>Warehouse</label>
+      <select id="adjust-warehouse" style="width:100%">
+        <option value="">Select Warehouse</option>
+      </select>
+    </div>
+    <div class="field" style="margin-bottom:10px">
+      <label>Quantity Change (+/-)</label>
+      <input id="adjust-qty" type="number" placeholder="+ for add, - for reduce"/>
+    </div>
+    <div class="field" style="margin-bottom:10px">
+      <label>Reason *</label>
+      <input id="adjust-reason" type="text" placeholder="e.g., Damaged goods, Found extra stock"/>
+    </div>
+    <div class="flex mt">
+      <button class="btn btn-blue" style="flex:1" onclick="submitStockAdjust()">Adjust Stock</button>
+      <button class="btn btn-gray" onclick="closeModal('modal-stock-adjust')">Cancel</button>
     </div>
   </div>
 </div>
@@ -735,6 +1013,600 @@ async function sendTestWA(){
     toast(d.success?'Message sent!':'Note: '+(d.reason||d.error),d.success?'ok':'ok');
   }catch(e){toast('Server error','err');}
 }
+
+// ---- BILLING / INVOICING FUNCTIONS ----
+let billItems = [];
+let currentInvoiceId = null;
+
+// Load customers and warehouses for billing dropdown
+async function loadBillingDropdowns() {
+  try {
+    const customers = await fetch(API + '/api/billing-customers').then(r => r.json());
+    const custSelect = document.getElementById('bill-customer-select');
+    if (custSelect) {
+      custSelect.innerHTML = '<option value="">Select Customer</option>' +
+        customers.map(c => `<option value="${c._id}">${c.name} - ${c.phone}</option>`).join('');
+    }
+    
+    const warehouses = await fetch(API + '/api/warehouses').then(r => r.json());
+    const whSelect = document.getElementById('bill-warehouse-select');
+    const adjWhSelect = document.getElementById('adjust-warehouse');
+    const importWhSelect = document.getElementById('import-warehouse');
+    
+    if (whSelect) {
+      whSelect.innerHTML = '<option value="">Select Warehouse</option>' +
+        warehouses.map(w => `<option value="${w._id}">${w.name} (${w.code})</option>`).join('');
+    }
+    if (adjWhSelect) {
+      adjWhSelect.innerHTML = '<option value="">Select Warehouse</option>' +
+        warehouses.map(w => `<option value="${w._id}">${w.name}</option>`).join('');
+    }
+    if (importWhSelect) {
+      importWhSelect.innerHTML = '<option value="">Select Warehouse</option>' +
+        warehouses.map(w => `<option value="${w._id}">${w.name}</option>`).join('');
+    }
+  } catch (e) {
+    console.error('Error loading dropdowns:', e);
+  }
+}
+
+// Search products for billing
+async function searchProductsForBill() {
+  const query = document.getElementById('item-product-search').value;
+  if (query.length < 2) {
+    document.getElementById('item-search-results').style.display = 'none';
+    return;
+  }
+  
+  try {
+    const products = await fetch(API + `/api/products?search=${query}`).then(r => r.json());
+    const resultsDiv = document.getElementById('item-search-results');
+    
+    if (products.length === 0) {
+      resultsDiv.innerHTML = '<div style="padding:8px;color:var(--muted)">No products found</div>';
+      resultsDiv.style.display = 'block';
+      return;
+    }
+    
+    resultsDiv.innerHTML = products.map(p => `
+      <div style="padding:8px;cursor:pointer;border-bottom:1px solid var(--border)" 
+           onclick="selectProductForBill('${p.sku}', '${p.name}', ${p.sellingPrice}, ${p.gstRate || 18})">
+        <div style="font-weight:600;font-size:13px">${p.name}</div>
+        <div style="font-size:11px;color:var(--muted)">SKU: ${p.sku} | Stock: ${p.currentStock} | Rs.${p.sellingPrice}</div>
+      </div>
+    `).join('');
+    resultsDiv.style.display = 'block';
+  } catch (e) {
+    console.error('Error searching products:', e);
+  }
+}
+
+function selectProductForBill(sku, name, rate, gstRate) {
+  document.getElementById('item-product-search').value = `${name} (${sku})`;
+  document.getElementById('item-rate').value = rate;
+  document.getElementById('item-gst').value = gstRate || 18;
+  document.getElementById('item-search-results').style.display = 'none';
+  document.getElementById('item-qty').focus();
+}
+
+function openAddItemModal() {
+  billItems = [];
+  renderBillItems();
+  document.getElementById('modal-add-item').classList.add('open');
+}
+
+function addItemToBill() {
+  const sku = document.getElementById('item-product-search').value.split('(').pop().replace(')', '').trim();
+  const qty = parseFloat(document.getElementById('item-qty').value);
+  const rate = parseFloat(document.getElementById('item-rate').value);
+  const discount = parseFloat(document.getElementById('item-discount').value) || 0;
+  const gstRate = parseFloat(document.getElementById('item-gst').value);
+  
+  if (!sku || !qty || !rate) {
+    toast('Please fill all required fields', 'err');
+    return;
+  }
+  
+  // Calculate GST
+  const taxableValue = (rate * qty) - discount;
+  const gstAmount = (taxableValue * gstRate) / 100;
+  const totalAmount = taxableValue + gstAmount;
+  
+  billItems.push({
+    sku,
+    qty,
+    rate,
+    discount,
+    gstRate,
+    taxableValue,
+    gstAmount,
+    totalAmount
+  });
+  
+  renderBillItems();
+  closeModal('modal-add-item');
+  
+  // Reset form
+  document.getElementById('item-product-search').value = '';
+  document.getElementById('item-qty').value = 1;
+  document.getElementById('item-rate').value = 0;
+  document.getElementById('item-discount').value = 0;
+}
+
+function renderBillItems() {
+  const tbody = document.getElementById('bill-items-tbody');
+  if (!tbody) return;
+  
+  if (billItems.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty">No items added yet</td></tr>';
+  } else {
+    tbody.innerHTML = billItems.map((item, idx) => `
+      <tr>
+        <td>${item.sku}</td>
+        <td>${item.sku}</td>
+        <td>${item.qty}</td>
+        <td>₹${item.rate.toFixed(2)}</td>
+        <td>₹${item.discount.toFixed(2)}</td>
+        <td>₹${item.taxableValue.toFixed(2)}</td>
+        <td>₹${item.gstAmount.toFixed(2)}</td>
+        <td>₹${item.totalAmount.toFixed(2)}</td>
+        <td><button class="btn btn-red btn-sm" onclick="removeBillItem(${idx})">Remove</button></td>
+      </tr>
+    `).join('');
+  }
+  
+  // Update totals
+  const subtotal = billItems.reduce((sum, item) => sum + item.taxableValue, 0);
+  const totalGst = billItems.reduce((sum, item) => sum + item.gstAmount, 0);
+  const grandTotal = billItems.reduce((sum, item) => sum + item.totalAmount, 0);
+  
+  document.getElementById('bill-subtotal').textContent = `₹${subtotal.toFixed(2)}`;
+  document.getElementById('bill-gst').textContent = `₹${totalGst.toFixed(2)}`;
+  document.getElementById('bill-grand-total').textContent = `₹${grandTotal.toFixed(2)}`;
+}
+
+function removeBillItem(index) {
+  billItems.splice(index, 1);
+  renderBillItems();
+}
+
+function clearBill() {
+  billItems = [];
+  currentInvoiceId = null;
+  document.getElementById('bill-customer-select').value = '';
+  document.getElementById('bill-warehouse-select').value = '';
+  document.getElementById('bill-payment-mode').value = 'cash';
+  document.getElementById('bill-remarks').value = '';
+  renderBillItems();
+  toast('Bill cleared', 'ok');
+}
+
+async function saveInvoiceDraft() {
+  const customerId = document.getElementById('bill-customer-select').value;
+  const warehouseId = document.getElementById('bill-warehouse-select').value;
+  const paymentMode = document.getElementById('bill-payment-mode').value;
+  const remarks = document.getElementById('bill-remarks').value;
+  
+  if (!customerId || !warehouseId || billItems.length === 0) {
+    toast('Please select customer, warehouse, and add items', 'err');
+    return;
+  }
+  
+  try {
+    const response = await fetch(API + '/api/invoices', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customer: customerId,
+        items: billItems,
+        warehouseId,
+        paymentMode,
+        remarks
+      })
+    });
+    
+    const invoice = await response.json();
+    if (!response.ok) throw new Error(invoice.error);
+    
+    currentInvoiceId = invoice._id;
+    toast('Invoice saved as draft', 'ok');
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
+async function finalizeInvoice() {
+  if (!currentInvoiceId) {
+    toast('Please save as draft first', 'err');
+    return;
+  }
+  
+  try {
+    const response = await fetch(API + `/api/invoices/${currentInvoiceId}/finalize`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: 'admin' })
+    });
+    
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error);
+    
+    toast('Invoice finalized! Downloading PDF...', 'ok');
+    
+    // Download PDF
+    window.open(API + `/api/invoices/${currentInvoiceId}/pdf`, '_blank');
+    
+    setTimeout(() => {
+      clearBill();
+      loadInvoices();
+    }, 2000);
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
+// Load invoices list
+async function loadInvoices() {
+  const status = document.getElementById('invoice-filter-status')?.value || '';
+  const search = document.getElementById('invoice-search')?.value || '';
+  
+  try {
+    let url = API + '/api/invoices?';
+    if (status) url += `status=${status}&`;
+    if (search) url += `search=${search}&`;
+    
+    const invoices = await fetch(url).then(r => r.json());
+    const tbody = document.getElementById('invoice-tbody');
+    
+    if (!invoices.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty">No invoices found</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = invoices.map(inv => `
+      <tr>
+        <td style="font-weight:600">${inv.invoiceNo}</td>
+        <td>${new Date(inv.invoiceDate).toLocaleDateString()}</td>
+        <td>${inv.customerName}</td>
+        <td>₹${inv.grandTotal.toFixed(2)}</td>
+        <td><span class="badge" style="background:${inv.paymentMode === 'paid' ? 'hsl(140,45%,14%)' : 'hsl(32,60%,16%)'}">${inv.paymentMode}</span></td>
+        <td><span class="badge ${inv.status === 'finalized' ? 'in-stock' : inv.status === 'cancelled' ? 'out' : 'low-stock'}">${inv.status}</span></td>
+        <td>
+          <button class="btn btn-blue btn-sm" onclick="viewInvoice('${inv._id}')">View</button>
+          <button class="btn btn-gray btn-sm" onclick="downloadInvoicePDF('${inv._id}')">PDF</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    console.error('Error loading invoices:', e);
+  }
+}
+
+async function viewInvoice(id) {
+  try {
+    const invoice = await fetch(API + `/api/invoices/${id}`).then(r => r.json());
+    alert(`Invoice ${invoice.invoiceNo}\nCustomer: ${invoice.customerName}\nTotal: ₹${invoice.grandTotal}\nStatus: ${invoice.status}`);
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
+function downloadInvoicePDF(id) {
+  window.open(API + `/api/invoices/${id}/pdf`, '_blank');
+}
+
+// Load stock ledger
+async function loadStockLedger() {
+  const product = document.getElementById('ledger-product-search')?.value || '';
+  const type = document.getElementById('ledger-type-filter')?.value || '';
+  
+  try {
+    let url = API + '/api/stock-ledger?limit=100&';
+    if (product) url += `product=${product}&`;
+    if (type) url += `referenceType=${type}&`;
+    
+    const ledger = await fetch(url).then(r => r.json());
+    const tbody = document.getElementById('ledger-tbody');
+    
+    if (!ledger.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty">No ledger entries found</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = ledger.map(entry => `
+      <tr>
+        <td>${new Date(entry.createdAt).toLocaleDateString()}</td>
+        <td>${entry.product?.name || 'N/A'}</td>
+        <td>${entry.sku}</td>
+        <td><span class="badge" style="font-size:10px">${entry.referenceType}</span></td>
+        <td style="color:${entry.qtyChange > 0 ? 'hsl(140,60%,55%)' : 'hsl(0,70%,65%)'}">
+          ${entry.qtyChange > 0 ? '+' : ''}${entry.qtyChange}
+        </td>
+        <td style="font-weight:600">${entry.balanceAfter}</td>
+        <td>₹${entry.unitCost.toFixed(2)}</td>
+        <td>₹${Math.abs(entry.totalValue).toFixed(2)}</td>
+        <td>${entry.reason || entry.remarks || '-'}</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    console.error('Error loading ledger:', e);
+  }
+}
+
+function openStockAdjustModal() {
+  document.getElementById('modal-stock-adjust').classList.add('open');
+  loadBillingDropdowns();
+}
+
+async function submitStockAdjust() {
+  const sku = document.getElementById('adjust-sku').value;
+  const warehouseId = document.getElementById('adjust-warehouse').value;
+  const qtyChange = parseFloat(document.getElementById('adjust-qty').value);
+  const reason = document.getElementById('adjust-reason').value;
+  
+  if (!sku || !warehouseId || !qtyChange || !reason) {
+    toast('Please fill all fields', 'err');
+    return;
+  }
+  
+  try {
+    const response = await fetch(API + '/api/stock/adjust', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sku, warehouseId, qtyChange, reason, userId: 'admin' })
+    });
+    
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error);
+    
+    toast('Stock adjusted successfully', 'ok');
+    closeModal('modal-stock-adjust');
+    loadStockLedger();
+    
+    // Clear form
+    document.getElementById('adjust-sku').value = '';
+    document.getElementById('adjust-qty').value = '';
+    document.getElementById('adjust-reason').value = '';
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
+// Excel import functions
+function downloadProductTemplate() {
+  const template = [
+    ['SKU', 'ProductName', 'Category', 'HSN', 'GST', 'Unit', 'SalePrice', 'PurchasePrice', 'Barcode', 'Description'],
+    ['PROD-001', 'Premium Formal Shirt', 'formal', '6105', '18', 'pcs', '999', '750', '8901234567890', 'Premium quality formal shirt']
+  ];
+  
+  const csv = template.map(row => row.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'product-template.csv';
+  a.click();
+  toast('Template downloaded', 'ok');
+}
+
+function downloadStockTemplate() {
+  const template = [
+    ['SKU', 'Qty', 'UnitCost', 'BatchNo', 'MFGDate', 'ExpiryDate'],
+    ['PROD-001', '100', '750', 'BATCH-001', '2024-01-15', '2026-01-15']
+  ];
+  
+  const csv = template.map(row => row.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'opening-stock-template.csv';
+  a.click();
+  toast('Stock template downloaded', 'ok');
+}
+
+document.getElementById('import-type')?.addEventListener('change', function() {
+  document.getElementById('warehouse-field').style.display = this.value === 'opening-stock' ? 'block' : 'none';
+});
+
+async function processExcelImport() {
+  const importType = document.getElementById('import-type').value;
+  const warehouseId = document.getElementById('import-warehouse').value;
+  const excelData = document.getElementById('excel-data').value;
+  
+  if (!excelData.trim()) {
+    toast('Please paste Excel data', 'err');
+    return;
+  }
+  
+  // Parse CSV/Tab-separated data
+  const rows = excelData.trim().split('\n').map(row => {
+    const cols = row.includes('\t') ? row.split('\t') : row.split(',');
+    const obj = {};
+    // Assume first row is header
+    return cols;
+  });
+  
+  const headers = rows[0].map(h => h.trim());
+  const data = rows.slice(1).map(row => {
+    const obj = {};
+    row.forEach((val, idx) => {
+      obj[headers[idx]] = val?.trim();
+    });
+    return obj;
+  });
+  
+  try {
+    const endpoint = importType === 'products' ? '/api/import/products' : '/api/import/opening-stock';
+    const payload = importType === 'products' 
+      ? { data } 
+      : { data, warehouseId, userId: 'admin' };
+    
+    const response = await fetch(API + endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error);
+    
+    const resultDiv = document.getElementById('import-result');
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = `
+      <div style="padding:16px;background:hsl(140,45%,14%);border-radius:10px;margin-bottom:10px">
+        <strong>Success:</strong> ${result.results.success.length} records imported
+      </div>
+      ${result.results.errors.length > 0 ? `
+        <div style="padding:16px;background:hsl(0,45%,16%);border-radius:10px">
+          <strong>Errors (${result.results.errors.length}):</strong>
+          <ul style="margin-top:8px;font-size:13px">
+            ${result.results.errors.map(e => `<li>Row ${e.row}: ${e.error}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+    `;
+    
+    toast('Import completed', 'ok');
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
+// Reports functions
+async function loadStockOnHand() {
+  try {
+    const report = await fetch(API + '/api/reports/stock-on-hand').then(r => r.json());
+    showReport('Stock on Hand Report', `
+      <div style="margin-bottom:16px"><strong>Total Products:</strong> ${report.totalProducts} | <strong>Total Value:</strong> ₹${report.totalInventoryValue.toFixed(2)}</div>
+      <table>
+        <thead><tr><th>SKU</th><th>Name</th><th>Stock</th><th>Cost</th><th>Price</th><th>Status</th></tr></thead>
+        <tbody>
+          ${report.stockReport.map(item => `
+            <tr>
+              <td>${item.sku}</td>
+              <td>${item.name}</td>
+              <td>${item.currentStock}</td>
+              <td>₹${item.costPrice}</td>
+              <td>₹${item.sellingPrice}</td>
+              <td><span class="badge ${item.status}">${item.status}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `);
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
+async function loadLowStockReport() {
+  try {
+    const products = await fetch(API + '/api/reports/low-stock').then(r => r.json());
+    showReport('Low Stock Alert', `
+      <div style="margin-bottom:16px"><strong>Products Requiring Attention:</strong> ${products.length}</div>
+      <table>
+        <thead><tr><th>SKU</th><th>Name</th><th>Current Stock</th><th>Reorder Point</th><th>Status</th></tr></thead>
+        <tbody>
+          ${products.map(p => `
+            <tr>
+              <td>${p.sku}</td>
+              <td>${p.name}</td>
+              <td style="color:${p.currentStock === 0 ? 'hsl(0,70%,65%)' : 'hsl(32,90%,65%)'}">${p.currentStock}</td>
+              <td>${p.reorderPoint}</td>
+              <td><span class="badge ${p.status}">${p.status}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `);
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
+async function loadSalesReport() {
+  try {
+    const report = await fetch(API + '/api/reports/sales').then(r => r.json());
+    showReport('Sales Report', `
+      <div style="margin-bottom:16px">
+        <strong>Total Revenue:</strong> ₹${report.summary.totalRevenue.toFixed(2)} | 
+        <strong>Units Sold:</strong> ${report.summary.totalUnits}
+      </div>
+      <table>
+        <thead><tr><th>Date</th><th>Product</th><th>Qty</th><th>Revenue</th></tr></thead>
+        <tbody>
+          ${report.sales.map(s => `
+            <tr>
+              <td>${new Date(s.saleDate).toLocaleDateString()}</td>
+              <td>${s.productId?.name || 'N/A'}</td>
+              <td>${s.quantitySold}</td>
+              <td>₹${s.revenue.toFixed(2)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `);
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
+async function loadProfitReport() {
+  try {
+    const report = await fetch(API + '/api/reports/profit').then(r => r.json());
+    showReport('Profit Analysis', `
+      <div style="margin-bottom:16px;padding:16px;background:hsl(140,45%,14%);border-radius:10px">
+        <strong>Total Revenue:</strong> ₹${report.summary.totalRevenue.toFixed(2)} | 
+        <strong>Total Cost:</strong> ₹${report.summary.totalCost.toFixed(2)} | 
+        <strong>Total Profit:</strong> ₹${report.summary.totalProfit.toFixed(2)} | 
+        <strong>Margin:</strong> ${report.summary.overallMargin}
+      </div>
+      <table>
+        <thead><tr><th>Product</th><th>Qty</th><th>Revenue</th><th>Cost</th><th>Profit</th><th>Margin</th></tr></thead>
+        <tbody>
+          ${report.profitData.map(p => `
+            <tr>
+              <td>${p.productName}</td>
+              <td>${p.quantity}</td>
+              <td>₹${p.revenue.toFixed(2)}</td>
+              <td>₹${p.cost.toFixed(2)}</td>
+              <td style="color:${p.profit > 0 ? 'hsl(140,60%,55%)' : 'hsl(0,70%,65%)'}">₹${p.profit.toFixed(2)}</td>
+              <td>${p.profitMargin}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `);
+  } catch (e) {
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
+function showReport(title, content) {
+  document.getElementById('report-title').textContent = title;
+  document.getElementById('report-content').innerHTML = content;
+  document.getElementById('report-container').style.display = 'block';
+  
+  // Scroll to report
+  document.getElementById('report-container').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Initialize billing pages when navigated to
+const originalGo = go;
+go = function(page, btn) {
+  originalGo(page, btn);
+  if (page === 'billing') {
+    loadBillingDropdowns();
+    clearBill();
+  } else if (page === 'invoices') {
+    loadInvoices();
+  } else if (page === 'stock-ledger') {
+    loadStockLedger();
+  } else if (page === 'import') {
+    loadBillingDropdowns();
+  }
+};
 
 // ---- HELPERS ----
 function closeModal(id){document.getElementById(id).classList.remove('open');}
