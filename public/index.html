@@ -1118,7 +1118,7 @@ function openAddItemModal() {
 }
 
 function addItemToBill() {
-  const skuInput = document.getElementById(\x27item-product-search\x27).value; const sku = skuInput.split(\x27(\x27).pop().replace(\x27)', '').trim();
+  const skuInput = document.getElementById('item-product-search').value; const sku = skuInput.split('(').pop().replace(')'', '').trim();
   const qty = parseFloat(document.getElementById('item-qty').value);
   const rate = parseFloat(document.getElementById('item-rate').value);
   const discount = parseFloat(document.getElementById('item-discount').value) || 0;
@@ -1134,7 +1134,7 @@ function addItemToBill() {
   const isInterstate = customerState !== 'Maharashtra';
   
   // Calculate GST based on state (intra-state = CGST+SGST, inter-state = IGST)
-  const taxableValue = (rate * qty) - discount; if (isNaN(taxableValue)) { toast(\x27Invalid calculation\x27, \x27err\x27); return; }
+  const taxableValue = (rate * qty) - discount; if (isNaN(taxableValue)) { toast('Invalid calculation', 'err'); return; }
   
   let cgstAmount = 0, sgstAmount = 0, igstAmount = 0;
   if (isInterstate) {
@@ -1150,7 +1150,7 @@ function addItemToBill() {
   
   billItems.push({
     sku,
-    name: skuInput.split(\x27(\x27)[0].trim(),
+    name: skuInput.split('(')[0].trim(),
     quantity: qty,
     rate,
     discount,
@@ -1200,9 +1200,9 @@ function renderBillItems() {
   
   // Update totals with proper GST breakdown
   const subtotal = billItems.reduce((sum, item) => sum + item.taxableValue, 0);
-  const totalCgst = billItems.reduce((sum, item) => sum + item.cgstAmount: Number(cgstAmount.toFixed(2)), 0);
-  const totalSgst = billItems.reduce((sum, item) => sum + item.sgstAmount: Number(sgstAmount.toFixed(2)), 0);
-  const totalIgst = billItems.reduce((sum, item) => sum + item.igstAmount: Number(igstAmount.toFixed(2)), 0);
+  const totalCgst = billItems.reduce((sum, item) => sum + item.cgstAmount, 0);
+  const totalSgst = billItems.reduce((sum, item) => sum + item.sgstAmount, 0);
+  const totalIgst = billItems.reduce((sum, item) => sum + item.igstAmount, 0);
   const totalGst = totalCgst + totalSgst + totalIgst;
   const grandTotal = billItems.reduce((sum, item) => sum + item.totalAmount, 0);
   
@@ -1703,6 +1703,7 @@ loadDashboard();
 </script>
 </body>
 </html>
+
 
 
 
