@@ -135,6 +135,7 @@ tr:hover td{background:rgba(60,45,35,0.4)}
   <button class="nav-btn" onclick="go('payments',this)">Payments</button>
   <button class="nav-btn" onclick="go('scanner',this)">Scanner</button>
   <button class="nav-btn" onclick="go('alerts',this)">Alerts</button>
+  <button class="nav-btn" onclick="go('settings',this)">Settings</button>
   <button class="nav-btn" onclick="go('whatsapp',this)">WhatsApp</button>
 </nav>
 
@@ -502,6 +503,64 @@ tr:hover td{background:rgba(60,45,35,0.4)}
   <div id="alerts-list"><div class="spinner"></div></div>
 </div>
 
+<!-- SETTINGS -->
+<div class="page" id="page-settings">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div>
+      <div class="card">
+        <h2>Warehouses</h2>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Add your store locations</p>
+        <div class="form-grid">
+          <div class="field"><label>Warehouse Name *</label><input id="wh-name" placeholder="Main Store"/></div>
+          <div class="field"><label>Warehouse Code *</label><input id="wh-code" placeholder="WH-MAIN"/></div>
+          <div class="field"><label>City</label><input id="wh-city" placeholder="Mumbai"/></div>
+          <div class="field"><label>State</label>
+            <select id="wh-state" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg)">
+              <option value="Maharashtra">Maharashtra</option>
+              <option value="Delhi">Delhi</option>
+              <option value="Gujarat">Gujarat</option>
+              <option value="Karnataka">Karnataka</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-blue" style="width:100%;margin-top:10px" onclick="addWarehouse()">Add Warehouse</button>
+        <div id="wh-list" style="margin-top:16px"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>Billing Customers</h2>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Customers for GST invoices</p>
+        <div class="form-grid">
+          <div class="field"><label>Name *</label><input id="bcust-name" placeholder="ABC Retail"/></div>
+          <div class="field"><label>Phone *</label><input id="bcust-phone" placeholder="9876543210"/></div>
+          <div class="field"><label>GSTIN</label><input id="bcust-gstin" placeholder="27AAPFU1234A1Z5"/></div>
+          <div class="field"><label>Type</label>
+            <select id="bcust-type" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--fg)">
+              <option value="retail">Retail</option>
+              <option value="wholesale">Wholesale</option>
+              <option value="corporate">Corporate</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" style="margin-top:10px"><label>Billing Address</label><input id="bcust-address" placeholder="Shop No. 123, Main Road"/></div>
+        <div class="form-grid" style="margin-top:10px">
+          <div class="field"><label>City</label><input id="bcust-city" placeholder="Mumbai"/></div>
+          <div class="field"><label>State</label>
+            <select id="bcust-state" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--fg)">
+              <option value="Maharashtra">Maharashtra</option>
+              <option value="Delhi">Delhi</option>
+              <option value="Gujarat">Gujarat</option>
+              <option value="Karnataka">Karnataka</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-blue" style="width:100%;margin-top:10px" onclick="addBillingCustomer()">Add Billing Customer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- WHATSAPP -->
 <div class="page" id="page-whatsapp">
   <div style="max-width:480px;margin:0 auto">
@@ -690,6 +749,7 @@ function go(page, btn) {
   if(page==='payments') loadPayments();
   if(page==='alerts') loadAlerts();
   if(page==='scanner') startScanner();
+  if(page==='settings') loadSettings();
   if(page==='whatsapp') checkWAStatus();
   if(page!=='scanner' && scannerOn) stopScanner();
 }
@@ -1012,6 +1072,78 @@ async function sendTestWA(){
     const d=await fetch(API+'/api/whatsapp/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({toNumber:to,message:msg})}).then(r=>r.json());
     toast(d.success?'Message sent!':'Note: '+(d.reason||d.error),d.success?'ok':'ok');
   }catch(e){toast('Server error','err');}
+}
+
+// ---- SETTINGS ----
+async function loadSettings(){
+  try{
+    const whs = await fetch(API + '/api/warehouses').then(r => r.json());
+    const whList = document.getElementById('wh-list');
+    if(!whs.length){
+      whList.innerHTML = '<p class="empty">No warehouses yet</p>';
+    }else{
+      whList.innerHTML = whs.map(w => `
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+          <div><strong>${w.name}</strong> <span style="color:var(--muted)">(${w.code})</span></div>
+          <span style="font-size:12px;color:var(--muted)">${w.city||''}, ${w.state||''}</span>
+        </div>
+      `).join('');
+    }
+  }catch(e){}
+}
+
+async function addWarehouse(){
+  const name = document.getElementById('wh-name').value.trim();
+  const code = document.getElementById('wh-code').value.trim().toUpperCase();
+  const city = document.getElementById('wh-city').value.trim();
+  const state = document.getElementById('wh-state').value;
+  
+  if(!name || !code){toast('Name and Code are required','err');return;}
+  
+  try{
+    const r = await fetch(API + '/api/warehouses', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({name, code, city, state, isActive: true})
+    });
+    if(!r.ok) throw new Error((await r.json()).error);
+    toast('Warehouse added!','ok');
+    document.getElementById('wh-name').value = '';
+    document.getElementById('wh-code').value = '';
+    loadSettings();
+    loadBillingDropdowns();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+async function addBillingCustomer(){
+  const name = document.getElementById('bcust-name').value.trim();
+  const phone = document.getElementById('bcust-phone').value.trim();
+  const gstin = document.getElementById('bcust-gstin').value.trim();
+  const type = document.getElementById('bcust-type').value;
+  const address = document.getElementById('bcust-address').value.trim();
+  const city = document.getElementById('bcust-city').value.trim();
+  const state = document.getElementById('bcust-state').value;
+  
+  if(!name || !phone){toast('Name and Phone are required','err');return;}
+  
+  try{
+    const r = await fetch(API + '/api/billing-customers', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name, phone, gstin, type,
+        billingAddress: { address, city, state, country: 'India' }
+      })
+    });
+    if(!r.ok) throw new Error((await r.json()).error);
+    toast('Billing customer added!','ok');
+    document.getElementById('bcust-name').value = '';
+    document.getElementById('bcust-phone').value = '';
+    document.getElementById('bcust-gstin').value = '';
+    document.getElementById('bcust-address').value = '';
+    document.getElementById('bcust-city').value = '';
+    loadBillingDropdowns();
+  }catch(e){toast('Error: '+e.message,'err');}
 }
 
 // ---- BILLING / INVOICING FUNCTIONS ----
