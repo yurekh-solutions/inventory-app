@@ -39,7 +39,7 @@ app.get('/', (req, res) => {
 });
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/tubhyam-inventory')
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/tubhyam-inventory')
   .then(async () => {
     console.log('✅ MongoDB Connected');
     
@@ -740,15 +740,47 @@ app.post('/api/invoices', async (req, res) => {
       return res.status(400).json({ error: 'Customer and items are required' });
     }
     
-    // Try to find customer - first check BillingCustomer, then regular Customer
-    let customerDoc = await BillingCustomer.findById(customer);
+    // Check if this is a walk-in customer (starts with 'walkin-')
+    let customerId = customer;
+    let customerDoc = null;
     let customerFromRegular = null;
     
-    if (!customerDoc) {
-      // Try regular Customer collection
-      customerFromRegular = await Customer.findById(customer);
-      if (!customerFromRegular) {
-        return res.status(404).json({ error: 'Customer not found. Please add customer first.' });
+    if (customer.startsWith('walkin-')) {
+      // Check if customer with this phone already exists
+      let walkinCustomer = null;
+      if (customerPhone) {
+        walkinCustomer = await Customer.findOne({ phone: customerPhone });
+      }
+      
+      if (!walkinCustomer) {
+        // Create a new walk-in customer with unique phone (add timestamp if needed)
+        const uniquePhone = customerPhone ? customerPhone : `walkin-${Date.now()}`;
+        walkinCustomer = new Customer({
+          name: customerName || 'Walk-in Customer',
+          phone: uniquePhone,
+          city: billingAddress?.city || '',
+          state: customerState || billingAddress?.state || 'Maharashtra',
+          address: billingAddress?.address || '',
+          pincode: billingAddress?.pincode || '',
+          status: 'active',
+          totalOrders: 1,
+          totalSpent: 0
+        });
+        await walkinCustomer.save();
+      }
+      
+      customerId = walkinCustomer._id;
+      customerFromRegular = walkinCustomer;
+    } else {
+      // Try to find existing customer - first check BillingCustomer, then regular Customer
+      customerDoc = await BillingCustomer.findById(customer);
+      
+      if (!customerDoc) {
+        // Try regular Customer collection
+        customerFromRegular = await Customer.findById(customer);
+        if (!customerFromRegular) {
+          return res.status(404).json({ error: 'Customer not found. Please add customer first.' });
+        }
       }
     }
     
@@ -851,7 +883,7 @@ app.post('/api/invoices', async (req, res) => {
     const invoice = new Invoice({
       invoiceNo: generateInvoiceNumber(new Date().getFullYear()),
       invoiceDate: new Date(),
-      customer: customerDoc?._id || customerFromRegular?._id,
+      customer: customerId || customerDoc?._id || customerFromRegular?._id,
       customerName: finalCustomerName,
       customerGstin: finalCustomerGstin,
       billingAddress: finalBillingAddress,
@@ -1158,17 +1190,34 @@ app.post('/api/stock/adjust', async (req, res) => {
   try {
     const { sku, warehouseId, qtyChange, reason, userId } = req.body;
     
-    if (!sku || !warehouseId || !qtyChange || !reason) {
-      return res.status(400).json({ error: 'SKU, warehouse, quantity change, and reason are required' });
+    console.log('Stock adjust request:', { sku, warehouseId, qtyChange, reason });
+    
+    if (!sku || !reason) {
+      return res.status(400).json({ error: 'SKU and reason are required' });
+    }
+    
+    // Parse qtyChange as number
+    const qtyChangeNum = parseFloat(qtyChange);
+    if (isNaN(qtyChangeNum) || qtyChangeNum === 0) {
+      return res.status(400).json({ error: 'Quantity change must be a valid number (not zero)' });
     }
     
     const product = await Product.findOne({ sku });
     if (!product) return res.status(404).json({ error: 'Product not found' });
     
-    const warehouse = await Warehouse.findById(warehouseId);
-    if (!warehouse) return res.status(404).json({ error: 'Warehouse not found' });
+    // Get warehouse - use provided or find default
+    let warehouse = null;
+    if (warehouseId) {
+      warehouse = await Warehouse.findById(warehouseId);
+    }
+    if (!warehouse) {
+      warehouse = await Warehouse.findOne({ isActive: true });
+    }
+    if (!warehouse) {
+      return res.status(404).json({ error: 'No warehouse found. Please create a warehouse first.' });
+    }
     
-    const newStock = product.currentStock + qtyChange;
+    const newStock = product.currentStock + qtyChangeNum;
     
     // Check for negative stock
     if (newStock < 0) {
@@ -1179,17 +1228,17 @@ app.post('/api/stock/adjust', async (req, res) => {
     }
     
     await Product.findByIdAndUpdate(product._id, {
-      $inc: { currentStock: qtyChange }
+      $inc: { currentStock: qtyChangeNum }
     });
     
     const ledger = new StockLedger({
       product: product._id,
       sku: product.sku,
       warehouse: warehouse._id,
-      qtyChange,
+      qtyChange: qtyChangeNum,
       balanceAfter: newStock,
       unitCost: product.costPrice,
-      totalValue: qtyChange * product.costPrice,
+      totalValue: qtyChangeNum * product.costPrice,
       referenceType: 'adjustment',
       referenceId: `ADJ-${Date.now()}`,
       reason,
@@ -1547,7 +1596,7 @@ app.get('/api/invoices/:id/pdf', async (req, res) => {
     doc.text('Thank you for your business!', 40, y, { align: 'center', width: 515 });
     y += 12;
     doc.fontSize(7);
-    doc.text('Terms & Conditions apply. This is a computer generated invoice.', 40, y, { align: 'center', width: 515 });
+    doc.text('Terms & Conditions apply.', 40, y, { align: 'center', width: 515 });
     
     doc.end();
   } catch (error) {
@@ -1598,16 +1647,21 @@ app.get('/api/reports/stock-on-hand', async (req, res) => {
 // Low stock report
 app.get('/api/reports/low-stock', async (req, res) => {
   try {
-    const products = await Product.find({
-      $or: [
-        { currentStock: { $lte: '$reorderPoint' } },
-        { currentStock: { $lte: '$minStock' } },
-        { status: { $in: ['low-stock', 'out-of-stock'] } }
-      ]
-    }).sort({ currentStock: 1 });
+    // Get all products and filter in JavaScript for reliability
+    const allProducts = await Product.find({}).lean();
     
-    res.json(products);
+    const lowStockProducts = allProducts.filter(p => {
+      const reorderPoint = p.reorderPoint || 15;
+      const minStock = p.minStock || 10;
+      return p.currentStock <= reorderPoint || 
+             p.currentStock <= minStock || 
+             p.status === 'low-stock' || 
+             p.status === 'out-of-stock';
+    }).sort((a, b) => a.currentStock - b.currentStock);
+    
+    res.json(lowStockProducts);
   } catch (error) {
+    console.error('Low stock report error:', error);
     res.status(500).json({ error: error.message });
   }
 });

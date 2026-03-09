@@ -122,7 +122,10 @@ tr:hover td{background:rgba(60,45,35,0.4)}
 
 <!-- NAV -->
 <nav>
-  <div class="logo">Tubhyam</div>
+  <div class="logo" style="display:flex;align-items:center;gap:10px">
+    <img src="/images/products/looo.png" alt="Tubhyam" style="height:32px;width:auto;object-fit:contain" onerror="this.style.display='none'"/>
+    <span>Tubhyam</span>
+  </div>
   <button class="nav-btn active" onclick="go('dashboard',this)">Dashboard</button>
   <button class="nav-btn" onclick="go('billing',this)">Billing</button>
   <button class="nav-btn" onclick="go('invoices',this)">Invoices</button>
@@ -142,10 +145,17 @@ tr:hover td{background:rgba(60,45,35,0.4)}
 <div class="page" id="page-billing">
   <div class="card">
     <h2>Create GST Invoice</h2>
-    <div class="form-grid">
+    
+    <!-- Customer Type Toggle -->
+    <div class="flex" style="margin-bottom:16px;gap:12px">
+      <button class="btn btn-blue" id="btn-existing-customer" onclick="setCustomerType('existing')" style="flex:1">Existing Customer</button>
+      <button class="btn btn-gray" id="btn-walkin-customer" onclick="setCustomerType('walkin')" style="flex:1">Walk-in Customer</button>
+    </div>
+    
+    <div class="form-grid" id="existing-customer-section">
       <div class="field">
-        <label>Customer *</label>
-        <select id="bill-customer-select" style="width:100%">
+        <label>Select Customer *</label>
+        <select id="bill-customer-select" style="width:100%" onchange="onCustomerSelect()">
           <option value="">Select Customer</option>
         </select>
       </div>
@@ -156,6 +166,32 @@ tr:hover td{background:rgba(60,45,35,0.4)}
           <option value="other">Other Indian States (Inter-state - IGST)</option>
         </select>
       </div>
+    </div>
+    
+    <!-- Walk-in Customer Section (Hidden by default) -->
+    <div class="form-grid" id="walkin-customer-section" style="display:none">
+      <div class="field">
+        <label>Customer Name *</label>
+        <input type="text" id="walkin-name" placeholder="Enter customer name"/>
+      </div>
+      <div class="field">
+        <label>Phone Number *</label>
+        <input type="text" id="walkin-phone" placeholder="Enter phone number"/>
+      </div>
+      <div class="field">
+        <label>City</label>
+        <input type="text" id="walkin-city" placeholder="Enter city"/>
+      </div>
+      <div class="field">
+        <label>State (for GST)</label>
+        <select id="walkin-state" style="width:100%">
+          <option value="Maharashtra">Maharashtra (Intra-state - CGST+SGST)</option>
+          <option value="other">Other Indian States (Inter-state - IGST)</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="form-grid">
       <div class="field">
         <label>Payment Mode</label>
         <select id="bill-payment-mode" style="width:100%">
@@ -172,8 +208,9 @@ tr:hover td{background:rgba(60,45,35,0.4)}
       </div>
     </div>
     
-    <div class="mt" style="margin-top:20px">
-      <button class="btn btn-blue" onclick="openAddItemModal()">+ Add Item</button>
+    <div class="mt" style="margin-top:20px;display:flex;gap:10px">
+      <button class="btn btn-blue" onclick="openAddItemModal()">+ Add Single Item</button>
+      <button class="btn btn-green" onclick="openMultiItemModal()">+ Add Multiple Items</button>
     </div>
     
     <div class="tbl-wrap mt" style="margin-top:16px">
@@ -210,8 +247,9 @@ tr:hover td{background:rgba(60,45,35,0.4)}
       </div>
     </div>
     
-    <div class="flex mt" style="justify-content:flex-end;margin-top:20px">
+    <div class="flex mt" style="justify-content:flex-end;margin-top:20px;gap:10px">
       <button class="btn btn-gray" onclick="clearBill()">Clear</button>
+      <button class="btn btn-blue" onclick="previewInvoice()">Preview Invoice</button>
       <button class="btn btn-blue" onclick="saveInvoiceDraft()">Save Draft</button>
       <button class="btn btn-green" onclick="finalizeInvoice()">Finalize & Generate PDF</button>
     </div>
@@ -288,6 +326,7 @@ tr:hover td{background:rgba(60,45,35,0.4)}
 
 <!-- IMPORT EXCEL -->
 <div class="page" id="page-import">
+  <!-- IMPORT SECTION -->
   <div class="card">
     <h2>Bulk Import from Excel</h2>
     <h3>Step 1: Download Template</h3>
@@ -313,16 +352,57 @@ tr:hover td{background:rgba(60,45,35,0.4)}
       </div>
     </div>
     
+    <!-- File Upload Option -->
+    <div class="mt" style="padding:20px;background:var(--card-bg);border:2px dashed var(--border);border-radius:12px;text-align:center">
+      <input type="file" id="excel-file" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFileUpload(this)"/>
+      <button class="btn btn-blue" onclick="document.getElementById('excel-file').click()" style="margin-bottom:12px">
+        Browse Computer / Choose File
+      </button>
+      <p style="color:var(--muted);font-size:13px;margin:0">Supported: CSV, Excel (.xlsx, .xls)</p>
+      <p id="selected-file-name" style="color:var(--accent);font-size:13px;margin-top:8px;display:none"></p>
+    </div>
+    
+    <div style="text-align:center;margin:16px 0;color:var(--muted);font-size:14px">— OR —</div>
+    
     <div class="mt">
-      <textarea id="excel-data" placeholder="Paste your Excel data here (copy from Excel and paste)" rows="10" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--fg);font-size:13px;font-family:monospace"></textarea>
+      <textarea id="excel-data" placeholder="Paste your Excel data here (copy from Excel and paste)" rows="8" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--fg);font-size:13px;font-family:monospace"></textarea>
     </div>
     
     <div class="flex mt">
       <button class="btn btn-blue" onclick="processExcelImport()">Import Data</button>
-      <button class="btn btn-gray" onclick="document.getElementById('excel-data').value=''">Clear</button>
+      <button class="btn btn-gray" onclick="clearImportForm()">Clear</button>
     </div>
     
     <div id="import-result" class="mt" style="display:none"></div>
+  </div>
+  
+  <!-- EXPORT SECTION -->
+  <div class="card" style="margin-top:20px">
+    <h2>Export Data to Excel</h2>
+    <p style="color:var(--muted);margin-bottom:16px">Download your current system data as Excel file</p>
+    
+    <div class="form-grid">
+      <div class="field">
+        <label>Export Type</label>
+        <select id="export-type" style="width:100%">
+          <option value="products">Products Master (with current stock)</option>
+          <option value="customers">Customers List</option>
+          <option value="stock-ledger">Stock Ledger</option>
+          <option value="invoices">Invoices List</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Date Range (optional)</label>
+        <div style="display:flex;gap:10px">
+          <input type="date" id="export-start-date" style="flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--fg)"/>
+          <input type="date" id="export-end-date" style="flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--fg)"/>
+        </div>
+      </div>
+    </div>
+    
+    <div class="flex mt">
+      <button class="btn btn-green" onclick="exportDataToExcel()">Download Excel</button>
+    </div>
   </div>
 </div>
 
@@ -642,22 +722,62 @@ tr:hover td{background:rgba(60,45,35,0.4)}
   </div>
 </div>
 
+<!-- MULTI-ITEM SELECTION MODAL -->
+<div class="modal-bg" id="modal-multi-item">
+  <div class="modal" style="max-width:700px;max-height:80vh;display:flex;flex-direction:column">
+    <h3>Add Multiple Items</h3>
+    <div class="field" style="margin-bottom:10px">
+      <label>Search Products</label>
+      <input id="multi-item-search" type="text" placeholder="Type to search products..." oninput="searchProductsForMultiSelect()"/>
+    </div>
+    <div id="multi-item-results" style="flex:1;overflow-y:auto;max-height:400px;border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px">
+      <p class="empty" style="text-align:center;padding:20px">Type above to search products</p>
+    </div>
+    <div style="padding:10px;background:var(--input-bg);border-radius:8px;margin-bottom:10px">
+      <strong>Selected: <span id="multi-selected-count">0</span> items</strong>
+    </div>
+    <div class="flex mt">
+      <button class="btn btn-blue" style="flex:1" onclick="addSelectedItemsToBill()">Add Selected Items</button>
+      <button class="btn btn-gray" onclick="closeModal('modal-multi-item')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- INVOICE PREVIEW MODAL -->
+<div class="modal-bg" id="modal-invoice-preview">
+  <div class="modal" style="max-width:600px;max-height:90vh;overflow-y:auto">
+    <h3>Invoice Preview</h3>
+    <div id="invoice-preview-content" style="background:var(--input-bg);padding:20px;border-radius:12px;margin-bottom:16px;font-size:13px;line-height:1.6">
+      <!-- Preview content will be injected here -->
+    </div>
+    <div class="flex mt">
+      <button class="btn btn-blue" style="flex:1" onclick="closeModal('modal-invoice-preview')">Close Preview</button>
+      <button class="btn btn-green" onclick="closeModal('modal-invoice-preview');saveInvoiceDraft()">Save as Draft</button>
+    </div>
+  </div>
+</div>
+
 <!-- STOCK ADJUST MODAL -->
 <div class="modal-bg" id="modal-stock-adjust">
   <div class="modal">
     <h3>Adjust Stock</h3>
     <div class="field" style="margin-bottom:10px">
-      <label>Product SKU</label>
-      <input id="adjust-sku" type="text" placeholder="Enter SKU"/>
+      <label>Search Product</label>
+      <input id="adjust-product-search" type="text" placeholder="Type product name or SKU..." oninput="searchProductsForStockAdjust()"/>
+      <div id="adjust-search-results" style="max-height:150px;overflow-y:auto;margin-top:8px;border:1px solid var(--border);border-radius:8px;display:none"></div>
     </div>
     <div class="field" style="margin-bottom:10px">
-      <label>Warehouse</label>
+      <label>Product SKU</label>
+      <input id="adjust-sku" type="text" placeholder="SKU will auto-fill" readonly style="background:var(--input-bg);opacity:0.7"/>
+    </div>
+    <div class="field" style="margin-bottom:10px">
+      <label>Warehouse (Optional)</label>
       <select id="adjust-warehouse" style="width:100%">
-        <option value="">Select Warehouse</option>
+        <option value="">Auto-select default warehouse</option>
       </select>
     </div>
     <div class="field" style="margin-bottom:10px">
-      <label>Quantity Change (+/-)</label>
+      <label>Quantity Change (+/-) *</label>
       <input id="adjust-qty" type="number" placeholder="+ for add, - for reduce"/>
     </div>
     <div class="field" style="margin-bottom:10px">
@@ -1111,9 +1231,277 @@ function selectProductForBill(sku, name, rate, gstRate) {
   document.getElementById('item-qty').focus();
 }
 
-function openAddItemModal() {
-  billItems = [];
+// ---- CUSTOMER TYPE TOGGLE ----
+let customerType = 'existing';
+
+function setCustomerType(type) {
+  customerType = type;
+  const existingBtn = document.getElementById('btn-existing-customer');
+  const walkinBtn = document.getElementById('btn-walkin-customer');
+  const existingSection = document.getElementById('existing-customer-section');
+  const walkinSection = document.getElementById('walkin-customer-section');
+  
+  if (type === 'existing') {
+    existingBtn.classList.remove('btn-gray');
+    existingBtn.classList.add('btn-blue');
+    walkinBtn.classList.remove('btn-blue');
+    walkinBtn.classList.add('btn-gray');
+    existingSection.style.display = 'grid';
+    walkinSection.style.display = 'none';
+  } else {
+    walkinBtn.classList.remove('btn-gray');
+    walkinBtn.classList.add('btn-blue');
+    existingBtn.classList.remove('btn-blue');
+    existingBtn.classList.add('btn-gray');
+    existingSection.style.display = 'none';
+    walkinSection.style.display = 'grid';
+  }
+}
+
+// Initialize customer type on page load
+document.addEventListener('DOMContentLoaded', function() {
+  setCustomerType('existing');
+});
+
+function onCustomerSelect() {
+  // Auto-fill state based on customer selection is handled by the event listener
+}
+
+// ---- MULTI-ITEM SELECTION ----
+let multiSelectedItems = new Map();
+
+function openMultiItemModal() {
+  multiSelectedItems.clear();
+  document.getElementById('multi-item-search').value = '';
+  document.getElementById('multi-item-results').innerHTML = '<p class="empty" style="text-align:center;padding:20px">Type above to search products</p>';
+  document.getElementById('multi-selected-count').textContent = '0';
+  document.getElementById('modal-multi-item').classList.add('open');
+}
+
+async function searchProductsForMultiSelect() {
+  const query = document.getElementById('multi-item-search').value;
+  if (query.length < 2) {
+    document.getElementById('multi-item-results').innerHTML = '<p class="empty" style="text-align:center;padding:20px">Type above to search products</p>';
+    return;
+  }
+  
+  try {
+    const products = await fetch(API + `/api/products?search=${query}`).then(r => r.json());
+    const resultsDiv = document.getElementById('multi-item-results');
+    
+    if (products.length === 0) {
+      resultsDiv.innerHTML = '<p class="empty" style="text-align:center;padding:20px">No products found</p>';
+      return;
+    }
+    
+    resultsDiv.innerHTML = products.map(p => {
+      const isSelected = multiSelectedItems.has(p.sku);
+      const selectedData = multiSelectedItems.get(p.sku);
+      return `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px;border-bottom:1px solid var(--border);${isSelected ? 'background:hsl(32,60%,20%)' : ''}">
+          <input type="checkbox" id="chk-${p.sku}" ${isSelected ? 'checked' : ''} 
+                 onchange="toggleMultiItem('${p.sku}', '${p.name}', ${p.sellingPrice}, ${p.gstRate || 18}, ${p.currentStock})"
+                 style="width:18px;height:18px;cursor:pointer">
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:13px">${p.name}</div>
+            <div style="font-size:11px;color:var(--muted)">SKU: ${p.sku} | Stock: ${p.currentStock} | Rs.${p.sellingPrice}</div>
+          </div>
+          ${isSelected ? `
+            <div style="display:flex;align-items:center;gap:8px">
+              <label style="font-size:11px">Qty:</label>
+              <input type="number" min="1" max="${p.currentStock}" value="${selectedData?.qty || 1}"
+                     onchange="updateMultiItemQty('${p.sku}', this.value)"
+                     style="width:60px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--fg);font-size:12px">
+              <label style="font-size:11px">Disc:</label>
+              <input type="number" min="0" value="${selectedData?.discount || 0}"
+                     onchange="updateMultiItemDiscount('${p.sku}', this.value)"
+                     style="width:60px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--fg);font-size:12px">
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    console.error('Error searching products:', e);
+  }
+}
+
+function toggleMultiItem(sku, name, rate, gstRate, stock) {
+  const checkbox = document.getElementById(`chk-${sku}`);
+  if (checkbox.checked) {
+    multiSelectedItems.set(sku, { sku, name, rate, gstRate, qty: 1, discount: 0, stock });
+  } else {
+    multiSelectedItems.delete(sku);
+  }
+  document.getElementById('multi-selected-count').textContent = multiSelectedItems.size;
+  searchProductsForMultiSelect(); // Re-render to show/hide qty inputs
+}
+
+function updateMultiItemQty(sku, qty) {
+  const item = multiSelectedItems.get(sku);
+  if (item) {
+    item.qty = parseInt(qty) || 1;
+    multiSelectedItems.set(sku, item);
+  }
+}
+
+function updateMultiItemDiscount(sku, discount) {
+  const item = multiSelectedItems.get(sku);
+  if (item) {
+    item.discount = parseFloat(discount) || 0;
+    multiSelectedItems.set(sku, item);
+  }
+}
+
+function addSelectedItemsToBill() {
+  if (multiSelectedItems.size === 0) {
+    toast('Please select at least one item', 'err');
+    return;
+  }
+  
+  const customerState = document.getElementById('walkin-state')?.value || 
+                        document.getElementById('bill-customer-state')?.value || 'Maharashtra';
+  const isInterstate = customerState !== 'Maharashtra';
+  
+  for (const item of multiSelectedItems.values()) {
+    const taxableValue = (item.rate * item.qty) - item.discount;
+    let cgstAmount = 0, sgstAmount = 0, igstAmount = 0;
+    
+    if (isInterstate) {
+      igstAmount = (taxableValue * item.gstRate) / 100;
+    } else {
+      cgstAmount = (taxableValue * item.gstRate) / 200;
+      sgstAmount = (taxableValue * item.gstRate) / 200;
+    }
+    const gstAmount = cgstAmount + sgstAmount + igstAmount;
+    const totalAmount = taxableValue + gstAmount;
+    
+    billItems.push({
+      sku: item.sku,
+      name: item.name,
+      quantity: item.qty,
+      rate: item.rate,
+      discount: item.discount,
+      gstRate: item.gstRate,
+      isInterstate,
+      taxableValue: Number(taxableValue.toFixed(2)),
+      cgstAmount: Number(cgstAmount.toFixed(2)),
+      sgstAmount: Number(sgstAmount.toFixed(2)),
+      igstAmount: Number(igstAmount.toFixed(2)),
+      gstAmount: Number(gstAmount.toFixed(2)),
+      totalAmount
+    });
+  }
+  
   renderBillItems();
+  closeModal('modal-multi-item');
+  toast(`${multiSelectedItems.size} items added to bill`, 'ok');
+}
+
+// ---- INVOICE PREVIEW ----
+function previewInvoice() {
+  if (billItems.length === 0) {
+    toast('Please add at least one item', 'err');
+    return;
+  }
+  
+  // Get customer info
+  let customerName, customerPhone, customerState;
+  if (customerType === 'existing') {
+    const customerId = document.getElementById('bill-customer-select').value;
+    if (!customerId) {
+      toast('Please select a customer', 'err');
+      return;
+    }
+    const customer = billingCustomers.find(c => c._id === customerId);
+    customerName = customer?.name || 'Unknown';
+    customerPhone = customer?.phone || '-';
+    customerState = document.getElementById('bill-customer-state')?.value || 'Maharashtra';
+  } else {
+    customerName = document.getElementById('walkin-name').value;
+    customerPhone = document.getElementById('walkin-phone').value;
+    customerState = document.getElementById('walkin-state')?.value || 'Maharashtra';
+    if (!customerName || !customerPhone) {
+      toast('Please fill customer name and phone', 'err');
+      return;
+    }
+  }
+  
+  const paymentMode = document.getElementById('bill-payment-mode').value;
+  const remarks = document.getElementById('bill-remarks').value;
+  
+  // Calculate totals
+  const subtotal = billItems.reduce((sum, item) => sum + item.taxableValue, 0);
+  const totalCgst = billItems.reduce((sum, item) => sum + item.cgstAmount, 0);
+  const totalSgst = billItems.reduce((sum, item) => sum + item.sgstAmount, 0);
+  const totalIgst = billItems.reduce((sum, item) => sum + item.igstAmount, 0);
+  const totalGst = totalCgst + totalSgst + totalIgst;
+  const grandTotal = billItems.reduce((sum, item) => sum + item.totalAmount, 0);
+  
+  const gstText = customerState === 'Maharashtra' 
+    ? `CGST: ₹${totalCgst.toFixed(2)} + SGST: ₹${totalSgst.toFixed(2)}`
+    : `IGST: ₹${totalIgst.toFixed(2)}`;
+  
+  const previewHTML = `
+    <div style="border-bottom:2px solid var(--gold);padding-bottom:12px;margin-bottom:16px">
+      <div style="font-size:18px;font-weight:700;color:var(--gold)">TUBHYAM</div>
+      <div style="font-size:12px;color:var(--muted)">GST Invoice Preview</div>
+    </div>
+    
+    <div style="margin-bottom:16px">
+      <div style="font-weight:600;margin-bottom:8px">Customer Details:</div>
+      <div><strong>Name:</strong> ${customerName}</div>
+      <div><strong>Phone:</strong> ${customerPhone}</div>
+      <div><strong>State:</strong> ${customerState === 'Maharashtra' ? 'Maharashtra (Intra-state)' : 'Other State (Inter-state)'}</div>
+      <div><strong>Payment:</strong> ${paymentMode.toUpperCase()}</div>
+      ${remarks ? `<div><strong>Remarks:</strong> ${remarks}</div>` : ''}
+    </div>
+    
+    <div style="margin-bottom:16px">
+      <div style="font-weight:600;margin-bottom:8px">Items (${billItems.length}):</div>
+      <table style="width:100%;font-size:11px;border-collapse:collapse">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border)">
+            <th style="text-align:left;padding:6px">Item</th>
+            <th style="text-align:center;padding:6px">Qty</th>
+            <th style="text-align:right;padding:6px">Rate</th>
+            <th style="text-align:right;padding:6px">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${billItems.map(item => `
+            <tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:6px">${item.name || item.sku}</td>
+              <td style="text-align:center;padding:6px">${item.quantity}</td>
+              <td style="text-align:right;padding:6px">₹${item.rate.toFixed(2)}</td>
+              <td style="text-align:right;padding:6px">₹${item.totalAmount.toFixed(2)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+    
+    <div style="border-top:2px solid var(--border);padding-top:12px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span>Subtotal:</span>
+        <strong>₹${subtotal.toFixed(2)}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span>GST (${gstText}):</span>
+        <strong>₹${totalGst.toFixed(2)}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:16px;color:var(--gold);margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+        <span><strong>Grand Total:</strong></span>
+        <strong>₹${grandTotal.toFixed(2)}</strong>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('invoice-preview-content').innerHTML = previewHTML;
+  document.getElementById('modal-invoice-preview').classList.add('open');
+}
+
+function openAddItemModal() {
   document.getElementById('modal-add-item').classList.add('open');
 }
 
@@ -1235,37 +1623,57 @@ function clearBill() {
 }
 
 async function saveInvoiceDraft() {
-  const customerId = document.getElementById('bill-customer-select').value;
-  const customerState = document.getElementById('bill-customer-state').value;
   const paymentMode = document.getElementById('bill-payment-mode').value;
   const remarks = document.getElementById('bill-remarks').value;
   
-  if (!customerId) {
-    toast('Please select a customer', 'err');
-    return;
-  }
   if (billItems.length === 0) {
     toast('Please add at least one item', 'err');
     return;
   }
   
-  // Get customer details from the stored customers
-  const customer = billingCustomers.find(c => c._id === customerId);
-  if (!customer) {
-    toast('Customer not found', 'err');
-    return;
+  let customerId, customerName, customerPhone, customerState, customerCity, customerAddress;
+  
+  if (customerType === 'existing') {
+    customerId = document.getElementById('bill-customer-select').value;
+    if (!customerId) {
+      toast('Please select a customer', 'err');
+      return;
+    }
+    const customer = billingCustomers.find(c => c._id === customerId);
+    if (!customer) {
+      toast('Customer not found', 'err');
+      return;
+    }
+    customerName = customer.name;
+    customerPhone = customer.phone;
+    customerState = customer.state || document.getElementById('bill-customer-state').value || 'Maharashtra';
+    customerCity = customer.city || '';
+    customerAddress = customer.address || '';
+  } else {
+    // Walk-in customer
+    customerName = document.getElementById('walkin-name').value.trim();
+    customerPhone = document.getElementById('walkin-phone').value.trim();
+    customerCity = document.getElementById('walkin-city').value.trim();
+    customerState = document.getElementById('walkin-state').value || 'Maharashtra';
+    customerAddress = '';
+    
+    if (!customerName || !customerPhone) {
+      toast('Please enter customer name and phone', 'err');
+      return;
+    }
+    
+    // Create a temporary customer ID for walk-in
+    customerId = 'walkin-' + Date.now();
   }
   
-  // Get or create default warehouse (single vendor - use default)
+  // Get or create default warehouse
   let warehouseId = 'default-warehouse';
   try {
     const warehouses = await fetch(API + '/api/warehouses').then(r => r.json());
     if (warehouses && warehouses.length > 0) {
-      warehouseId = warehouses[0]._id; // Use first warehouse
+      warehouseId = warehouses[0]._id;
     }
-  } catch(e) {
-    // Use default if warehouses not available
-  }
+  } catch(e) {}
   
   try {
     const response = await fetch(API + '/api/invoices', {
@@ -1273,19 +1681,19 @@ async function saveInvoiceDraft() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         customer: customerId,
-        customerName: customer.name,
-        customerPhone: customer.phone,
-        customerState: customer.state || customerState,
+        customerName: customerName,
+        customerPhone: customerPhone,
+        customerState: customerState,
         items: billItems,
         warehouseId: warehouseId,
         paymentMode,
         remarks,
-        customerGstin: customer.gstin || '',
+        customerGstin: '',
         billingAddress: {
-          address: customer.address || '',
-          city: customer.city || '',
-          state: customer.state || customerState,
-          pincode: customer.pincode || ''
+          address: customerAddress,
+          city: customerCity,
+          state: customerState,
+          pincode: ''
         }
       })
     });
@@ -1423,14 +1831,60 @@ function openStockAdjustModal() {
   loadBillingDropdowns();
 }
 
+// Search products for stock adjust
+async function searchProductsForStockAdjust() {
+  const query = document.getElementById('adjust-product-search').value;
+  if (query.length < 2) {
+    document.getElementById('adjust-search-results').style.display = 'none';
+    return;
+  }
+  
+  try {
+    const products = await fetch(API + `/api/products?search=${query}`).then(r => r.json());
+    const resultsDiv = document.getElementById('adjust-search-results');
+    
+    if (products.length === 0) {
+      resultsDiv.innerHTML = '<div style="padding:8px;color:var(--muted)">No products found</div>';
+      resultsDiv.style.display = 'block';
+      return;
+    }
+    
+    resultsDiv.innerHTML = products.map(p => `
+      <div style="padding:8px;cursor:pointer;border-bottom:1px solid var(--border)" 
+           onclick="selectProductForStockAdjust('${p.sku}', '${p.name}')">
+        <div style="font-weight:600;font-size:13px">${p.name}</div>
+        <div style="font-size:11px;color:var(--muted)">SKU: ${p.sku} | Stock: ${p.currentStock}</div>
+      </div>
+    `).join('');
+    resultsDiv.style.display = 'block';
+  } catch (e) {
+    console.error('Error searching products:', e);
+  }
+}
+
+function selectProductForStockAdjust(sku, name) {
+  document.getElementById('adjust-product-search').value = name;
+  document.getElementById('adjust-sku').value = sku;
+  document.getElementById('adjust-search-results').style.display = 'none';
+  document.getElementById('adjust-qty').focus();
+}
+
 async function submitStockAdjust() {
-  const sku = document.getElementById('adjust-sku').value;
+  const sku = document.getElementById('adjust-sku').value.trim();
   const warehouseId = document.getElementById('adjust-warehouse').value;
   const qtyChange = parseFloat(document.getElementById('adjust-qty').value);
-  const reason = document.getElementById('adjust-reason').value;
+  const reason = document.getElementById('adjust-reason').value.trim();
   
-  if (!sku || !warehouseId || !qtyChange || !reason) {
-    toast('Please fill all fields', 'err');
+  if (!sku) {
+    toast('Please enter product SKU', 'err');
+    return;
+  }
+  if (isNaN(qtyChange) || qtyChange === 0) {
+    toast('Please enter a valid quantity (+ to add, - to reduce)', 'err');
+    return;
+  }
+  if (!reason) {
+    toast('Please enter a reason for adjustment', 'err');
     return;
   }
   
@@ -1449,9 +1903,11 @@ async function submitStockAdjust() {
     loadStockLedger();
     
     // Clear form
+    document.getElementById('adjust-product-search').value = '';
     document.getElementById('adjust-sku').value = '';
     document.getElementById('adjust-qty').value = '';
     document.getElementById('adjust-reason').value = '';
+    document.getElementById('adjust-search-results').style.display = 'none';
   } catch (e) {
     toast('Error: ' + e.message, 'err');
   }
@@ -1488,6 +1944,72 @@ function downloadStockTemplate() {
   a.download = 'opening-stock-template.csv';
   a.click();
   toast('Stock template downloaded', 'ok');
+}
+
+// File upload handling
+function handleFileUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  
+  // Show selected file name
+  const fileNameDisplay = document.getElementById('selected-file-name');
+  fileNameDisplay.textContent = 'Selected: ' + file.name;
+  fileNameDisplay.style.display = 'block';
+  
+  const reader = new FileReader();
+  
+  reader.onload = function(e) {
+    const content = e.target.result;
+    
+    // Check if it's CSV or Excel-like
+    if (file.name.endsWith('.csv')) {
+      // CSV file - use directly
+      document.getElementById('excel-data').value = content;
+      toast('CSV file loaded: ' + file.name, 'ok');
+    } else {
+      // For Excel files, try to parse as text (basic parsing)
+      // In production, you'd use a library like SheetJS
+      const lines = content.split('\n').filter(line => line.trim());
+      
+      // Try to detect tab or comma separation
+      const firstLine = lines[0] || '';
+      if (firstLine.includes('\t')) {
+        // Tab separated - keep as is
+        document.getElementById('excel-data').value = content;
+      } else if (firstLine.includes(',')) {
+        // Comma separated - keep as is
+        document.getElementById('excel-data').value = content;
+      } else {
+        // Try to parse as fixed width or other format
+        // Convert to CSV format
+        const csvContent = lines.map(line => {
+          // Split by multiple spaces and join with comma
+          return line.trim().split(/\s{2,}/).join(',');
+        }).join('\n');
+        document.getElementById('excel-data').value = csvContent;
+      }
+      toast('File loaded: ' + file.name + ' (' + lines.length + ' rows)', 'ok');
+    }
+  };
+  
+  reader.onerror = function() {
+    toast('Error reading file', 'err');
+  };
+  
+  // Read as text for CSV, or as binary for Excel
+  if (file.name.endsWith('.csv') || file.name.endsWith('.txt')) {
+    reader.readAsText(file);
+  } else {
+    // For Excel files, read as text (limited support without SheetJS library)
+    reader.readAsText(file);
+  }
+}
+
+function clearImportForm() {
+  document.getElementById('excel-data').value = '';
+  document.getElementById('excel-file').value = '';
+  document.getElementById('selected-file-name').style.display = 'none';
+  document.getElementById('selected-file-name').textContent = '';
 }
 
 document.getElementById('import-type')?.addEventListener('change', function() {
@@ -1558,6 +2080,113 @@ async function processExcelImport() {
   }
 }
 
+// Export data to Excel
+async function exportDataToExcel() {
+  const exportType = document.getElementById('export-type').value;
+  const startDate = document.getElementById('export-start-date').value;
+  const endDate = document.getElementById('export-end-date').value;
+  
+  try {
+    let data = [];
+    let filename = '';
+    let headers = [];
+    
+    if (exportType === 'products') {
+      const products = await fetch(API + '/api/products').then(r => r.json());
+      filename = 'products-master.csv';
+      headers = ['SKU', 'Name', 'Category', 'CurrentStock', 'CostPrice', 'SellingPrice', 'GST_Rate', 'Status'];
+      data = products.map(p => ({
+        SKU: p.sku,
+        Name: p.name,
+        Category: p.category,
+        CurrentStock: p.currentStock,
+        CostPrice: p.costPrice,
+        SellingPrice: p.sellingPrice,
+        GST_Rate: p.gstRate || 18,
+        Status: p.status
+      }));
+    } else if (exportType === 'customers') {
+      const customers = await fetch(API + '/api/customers').then(r => r.json());
+      filename = 'customers-list.csv';
+      headers = ['Name', 'Phone', 'Email', 'City', 'State', 'Address', 'TotalOrders', 'TotalSpent'];
+      data = customers.map(c => ({
+        Name: c.name,
+        Phone: c.phone,
+        Email: c.email || '',
+        City: c.city || '',
+        State: c.state || '',
+        Address: c.address || '',
+        TotalOrders: c.totalOrders || 0,
+        TotalSpent: c.totalSpent || 0
+      }));
+    } else if (exportType === 'stock-ledger') {
+      let url = API + '/api/stock-ledger?limit=1000';
+      if (startDate && endDate) {
+        url += `&startDate=${startDate}&endDate=${endDate}`;
+      }
+      const ledger = await fetch(url).then(r => r.json());
+      filename = 'stock-ledger.csv';
+      headers = ['Date', 'SKU', 'Product', 'Warehouse', 'QtyChange', 'BalanceAfter', 'ReferenceType', 'Reason', 'CreatedBy'];
+      data = ledger.map(l => ({
+        Date: new Date(l.createdAt).toLocaleDateString(),
+        SKU: l.sku,
+        Product: l.product?.name || '',
+        Warehouse: l.warehouse?.name || '',
+        QtyChange: l.qtyChange,
+        BalanceAfter: l.balanceAfter,
+        ReferenceType: l.referenceType,
+        Reason: l.reason || '',
+        CreatedBy: l.createdBy
+      }));
+    } else if (exportType === 'invoices') {
+      let url = API + '/api/invoices?';
+      if (startDate && endDate) {
+        url += `startDate=${startDate}&endDate=${endDate}&`;
+      }
+      const invoices = await fetch(url).then(r => r.json());
+      filename = 'invoices-list.csv';
+      headers = ['InvoiceNo', 'Date', 'Customer', 'Amount', 'PaymentMode', 'Status'];
+      data = invoices.map(inv => ({
+        InvoiceNo: inv.invoiceNo,
+        Date: new Date(inv.invoiceDate).toLocaleDateString(),
+        Customer: inv.customerName,
+        Amount: inv.grandTotal,
+        PaymentMode: inv.paymentMode,
+        Status: inv.status
+      }));
+    }
+    
+    if (data.length === 0) {
+      toast('No data to export', 'err');
+      return;
+    }
+    
+    // Convert to CSV
+    const csvRows = [headers.join(',')];
+    data.forEach(row => {
+      const values = headers.map(h => {
+        const val = row[h] !== undefined ? row[h] : '';
+        // Escape quotes and wrap in quotes if contains comma
+        const escaped = String(val).replace(/"/g, '""');
+        return escaped.includes(',') ? `"${escaped}"` : escaped;
+      });
+      csvRows.push(values.join(','));
+    });
+    
+    const csv = csvRows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    
+    toast(`Exported ${data.length} records`, 'ok');
+  } catch (e) {
+    toast('Export error: ' + e.message, 'err');
+  }
+}
+
 // Reports functions
 async function loadStockOnHand() {
   try {
@@ -1587,9 +2216,20 @@ async function loadStockOnHand() {
 
 async function loadLowStockReport() {
   try {
-    const products = await fetch(API + '/api/reports/low-stock').then(r => r.json());
+    const response = await fetch(API + '/api/reports/low-stock');
+    const data = await response.json();
+    
+    // Handle error responses
+    if (!response.ok || !Array.isArray(data)) {
+      const errorMsg = data.error || 'Failed to load low stock report';
+      showReport('Low Stock Alert', `<p class="empty" style="color:hsl(0,70%,65%)">Error: ${errorMsg}</p>`);
+      return;
+    }
+    
+    const products = data;
     showReport('Low Stock Alert', `
       <div style="margin-bottom:16px"><strong>Products Requiring Attention:</strong> ${products.length}</div>
+      ${products.length === 0 ? '<p class="empty">No low stock items found. All products are well stocked!</p>' : `
       <table>
         <thead><tr><th>SKU</th><th>Name</th><th>Current Stock</th><th>Reorder Point</th><th>Status</th></tr></thead>
         <tbody>
@@ -1604,6 +2244,7 @@ async function loadLowStockReport() {
           `).join('')}
         </tbody>
       </table>
+      `}
     `);
   } catch (e) {
     toast('Error: ' + e.message, 'err');

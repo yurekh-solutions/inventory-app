@@ -205,7 +205,7 @@ const stockLedgerSchema = new mongoose.Schema({
   batchNo: { type: String },
   mfgDate: { type: Date },
   expiryDate: { type: Date },
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  createdBy: { type: String, default: 'admin' },
   remarks: { type: String }
 }, { timestamps: true });
 
