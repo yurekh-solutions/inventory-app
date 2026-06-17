@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import XLSX from 'xlsx';
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
+import multer from 'multer';
 import { Product, Supplier, Alert, SalesHistory, Customer, Broadcast, PaymentInquiry, Warehouse, StockLedger, BillingCustomer, Invoice, User, PurchaseOrder, BOM, ProductionOrder } from './models/Schemas.js';
 import { tubhyamProducts } from './data/seedProducts.js';
 import { demandPredictor } from './ai/Predictor.js';
@@ -18,6 +19,27 @@ dotenv.config();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Multer — image upload to public/images/products/
+const uploadDir = path.join(__dirname, 'public', 'images', 'products');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const name = `${Date.now()}-${Math.round(Math.random() * 1e6)}${ext}`;
+    cb(null, name);
+  }
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  fileFilter: (req, file, cb) => {
+    if (/image\/(jpeg|jpg|png|webp|gif|heic)/i.test(file.mimetype)) cb(null, true);
+    else cb(new Error('Only image files are allowed'));
+  }
+});
 
 // Middleware
 app.use(cors({
@@ -140,7 +162,62 @@ app.delete('/api/products/:id', async (req, res) => {
   }
 });
 
-// ==================== SUPPLIER ROUTES ====================
+// ==================== IMAGE UPLOAD ====================
+
+// Upload one or multiple product images
+// POST /api/upload/images  — multipart/form-data, field name: "images"
+// Returns array of public URLs for each uploaded file
+app.post('/api/upload/images', upload.array('images', 10), (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No images uploaded' });
+    }
+    const urls = req.files.map(f => `/images/products/${f.filename}`);
+    res.json({ success: true, urls, count: urls.length });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Upload single image and attach to a product
+// POST /api/products/:id/upload-image  — multipart/form-data, field: "image"
+app.post('/api/products/:id/upload-image', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No image provided' });
+
+    const url = `/images/products/${req.file.filename}`;
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { $push: { images: url } },
+      { new: true }
+    );
+    if (!product) return res.status(404).json({ error: 'Product not found' });
+
+    res.json({ success: true, url, product });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Replace all images of a product (upload multiple)
+// POST /api/products/:id/upload-images  — multipart/form-data, field: "images"
+app.post('/api/products/:id/upload-images', upload.array('images', 10), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No images provided' });
+    }
+    const urls = req.files.map(f => `/images/products/${f.filename}`);
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { $push: { images: { $each: urls } } },
+      { new: true }
+    );
+    if (!product) return res.status(404).json({ error: 'Product not found' });
+    res.json({ success: true, urls, product });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Get all suppliers
 app.get('/api/suppliers', async (req, res) => {
