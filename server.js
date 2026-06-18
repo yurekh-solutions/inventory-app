@@ -87,6 +87,13 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/tubhyam-i
       await Product.insertMany(tubhyamProducts);
       console.log(`✅ Seeded ${tubhyamProducts.length} Tubhyam products into inventory`);
     }
+
+    // Ensure test product always exists
+    const testProduct = await Product.findOne({ sku: 'TEST-001' });
+    if (!testProduct) {
+      await Product.create(tubhyamProducts.find(p => p.sku === 'TEST-001'));
+      console.log('✅ Created test product TEST-001 (₹1)');
+    }
   })
   .catch(err => console.error('❌ MongoDB Error:', err));
 
