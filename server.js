@@ -114,10 +114,19 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// Get single product
+// Get single product (by ObjectId or SKU)
 app.get('/api/products/:id', async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate('supplier');
+    const { id } = req.params;
+    let product;
+    // Try MongoDB ObjectId first
+    if (mongoose.Types.ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id)) {
+      product = await Product.findById(id).populate('supplier');
+    }
+    // Fall back to SKU lookup (case-insensitive)
+    if (!product) {
+      product = await Product.findOne({ sku: { $regex: `^${id}$`, $options: 'i' } }).populate('supplier');
+    }
     if (!product) return res.status(404).json({ error: 'Product not found' });
     res.json(product);
   } catch (error) {
