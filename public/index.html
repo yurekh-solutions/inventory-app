@@ -116,12 +116,68 @@ tr:hover td{background:rgba(60,45,35,0.4)}
 .wa-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px}
 .wa-dot.on{background:hsl(140,60%,50%);box-shadow:0 0 8px hsl(140,60%,50%)}
 .wa-dot.off{background:hsl(0,65%,55%)}
+
+/* LOGIN SCREEN */
+.login-overlay{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,hsl(25,30%,8%),hsl(25,25%,12%));display:flex;align-items:center;justify-content:center;min-height:100vh}
+.login-overlay.hidden{display:none}
+.login-box{width:380px;max-width:90vw;padding:40px 36px;border-radius:20px;background:linear-gradient(135deg,rgba(60,45,35,0.9),rgba(55,42,32,0.6));backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(240,220,190,0.1);box-shadow:0 20px 60px rgba(10,7,4,0.6)}
+.login-box h2{font-family:var(--font-serif);font-size:28px;color:var(--gold);text-align:center;margin-bottom:6px;letter-spacing:0.05em}
+.login-box p{text-align:center;color:var(--muted);font-size:13px;margin-bottom:28px}
+.login-box .field{margin-bottom:16px}
+.login-box .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;letter-spacing:0.04em;text-transform:uppercase}
+.login-box .field input{width:100%;padding:12px 14px;background:var(--input-bg);border:1px solid var(--border);border-radius:10px;color:var(--fg);font-size:14px;font-family:var(--font-sans);outline:none;transition:border-color .2s}
+.login-box .field input:focus{border-color:var(--gold)}
+.login-pass-wrap{position:relative}
+.login-pass-wrap input{padding-right:44px}
+.login-pass-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;display:flex;align-items:center;transition:color .2s}
+.login-pass-toggle:hover{color:var(--gold)}
+.login-box .login-btn{width:100%;padding:13px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:hsl(25,30%,10%);font-size:14px;font-weight:700;font-family:var(--font-sans);cursor:pointer;letter-spacing:0.04em;transition:opacity .2s,transform .1s}
+.login-box .login-btn:hover{opacity:0.9}
+.login-box .login-btn:active{transform:scale(0.98)}
+.login-box .login-err{color:hsl(0,70%,65%);font-size:12px;text-align:center;margin-top:10px;min-height:18px}
+.login-logo{display:flex;justify-content:center;margin-bottom:16px}
+.login-logo img{height:60px;width:60px;object-fit:contain;border-radius:50%;border:2px solid var(--gold)}
+
+/* LOGOUT BTN */
+.nav-logout{flex-shrink:0}
+.nav-logout button{padding:7px 14px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:var(--font-sans);font-size:11px;font-weight:600;border-radius:8px;cursor:pointer;transition:all .2s;letter-spacing:0.04em}
+.nav-logout button:hover{border-color:hsl(0,70%,55%);color:hsl(0,70%,65%)}
+.nav-user{font-size:11px;color:var(--muted);margin-left:auto;margin-right:8px;flex-shrink:0;letter-spacing:0.03em}
 </style>
 </head>
 <body>
 
+<!-- LOGIN OVERLAY -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">
+      <img src="/images/products/looo.png" alt="Tubhyam" onerror="this.style.display='none'"/>
+    </div>
+    <h2>Tubhyam</h2>
+    <p>Admin Dashboard Login</p>
+    <form id="login-form" onsubmit="doLogin(event)">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="login-user" placeholder="admin" autocomplete="username" required/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <div class="login-pass-wrap">
+          <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" required/>
+          <button type="button" class="login-pass-toggle" onclick="togglePassVisibility()" id="pass-toggle-btn" aria-label="Show password">
+            <svg id="eye-open" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg id="eye-closed" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
+      </div>
+      <button type="submit" class="login-btn" id="login-btn">Sign In</button>
+      <div class="login-err" id="login-err"></div>
+    </form>
+  </div>
+</div>
+
 <!-- NAV -->
-<nav>
+<nav id="main-nav" style="display:none">
   <div class="logo" style="display:flex;align-items:center;gap:10px">
     <img src="/images/products/looo.png" alt="Tubhyam" style="height:32px;width:auto;object-fit:contain" onerror="this.style.display='none'"/>
     <span>Tubhyam</span>
@@ -139,6 +195,8 @@ tr:hover td{background:rgba(60,45,35,0.4)}
   <button class="nav-btn" onclick="go('scanner',this)">Scanner</button>
   <button class="nav-btn" onclick="go('alerts',this)">Alerts</button>
   <button class="nav-btn" onclick="go('whatsapp',this)">WhatsApp</button>
+  <span class="nav-user" id="nav-user-name"></span>
+  <div class="nav-logout"><button onclick="doLogout()">Logout</button></div>
 </nav>
 
 <!-- BILLING / CREATE INVOICE -->
@@ -620,6 +678,16 @@ tr:hover td{background:rgba(60,45,35,0.4)}
       <div class="field"><label>Cost Price Rs.</label><input id="f-cost" type="number" placeholder="800"/></div>
       <div class="field"><label>Selling Price Rs.</label><input id="f-sell" type="number" placeholder="1499"/></div>
     </div>
+    <div style="margin-top:14px">
+      <label style="display:block;margin-bottom:6px;font-size:13px;color:var(--muted)">Product Images</label>
+      <div id="img-preview-area" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px"></div>
+      <label for="f-images" style="display:inline-flex;align-items:center;gap:6px;background:var(--input-bg);border:1px dashed var(--border);border-radius:8px;padding:8px 16px;cursor:pointer;font-size:13px;color:var(--muted);transition:border-color .2s" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Upload Images
+      </label>
+      <input id="f-images" type="file" accept="image/*" multiple style="display:none" onchange="previewImages(this)"/>
+      <div id="img-upload-status" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
+    </div>
     <div class="flex mt">
       <button class="btn btn-blue" style="flex:1" onclick="saveProduct()">Save Product</button>
       <button class="btn btn-gray" onclick="closeModal('modal-product')">Cancel</button>
@@ -872,16 +940,33 @@ async function loadProducts() {
   } catch(e){ tbody.innerHTML=`<tr><td colspan="6" class="empty">Server not connected. Run: node server.js</td></tr>`; }
 }
 
-function openAddProduct(){editingProductId=null;document.getElementById('modal-prod-title').textContent='Add New Product';['f-sku','f-name','f-stock','f-min','f-reorder','f-cost','f-sell'].forEach(id=>document.getElementById(id).value='');document.getElementById('modal-product').classList.add('open');}
-function editProduct(p){editingProductId=p._id;document.getElementById('modal-prod-title').textContent='Edit Product';document.getElementById('f-sku').value=p.sku;document.getElementById('f-name').value=p.name;document.getElementById('f-cat').value=p.category;document.getElementById('f-stock').value=p.currentStock;document.getElementById('f-min').value=p.minStock;document.getElementById('f-reorder').value=p.reorderPoint;document.getElementById('f-cost').value=p.costPrice;document.getElementById('f-sell').value=p.sellingPrice;document.getElementById('modal-product').classList.add('open');}
+let pendingImageFiles=[];let existingImages=[];
+function previewImages(input){const area=document.getElementById('img-preview-area');const files=Array.from(input.files);pendingImageFiles=pendingImageFiles.concat(files);renderImagePreviews();document.getElementById('img-upload-status').textContent=pendingImageFiles.length+' image(s) selected';}
+function renderImagePreviews(){const area=document.getElementById('img-preview-area');area.innerHTML='';existingImages.forEach((url,i)=>{area.innerHTML+=`<div style="position:relative;width:70px;height:70px"><img src="${url}" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--border)"/><button onclick="removeExistingImage(${i})" style="position:absolute;top:-6px;right:-6px;background:hsl(0,70%,55%);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:18px;text-align:center">×</button></div>`;});pendingImageFiles.forEach((f,i)=>{const url=URL.createObjectURL(f);area.innerHTML+=`<div style="position:relative;width:70px;height:70px"><img src="${url}" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:2px solid var(--gold)"/><button onclick="removePendingImage(${i})" style="position:absolute;top:-6px;right:-6px;background:hsl(0,70%,55%);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:18px;text-align:center">×</button><div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);color:var(--gold);font-size:8px;text-align:center;border-radius:0 0 8px 8px;padding:1px">NEW</div></div>`;});}
+function removePendingImage(i){pendingImageFiles.splice(i,1);renderImagePreviews();document.getElementById('img-upload-status').textContent=pendingImageFiles.length?'':'0 images selected';}
+function removeExistingImage(i){existingImages.splice(i,1);renderImagePreviews();}
+function openAddProduct(){editingProductId=null;pendingImageFiles=[];existingImages=[];document.getElementById('modal-prod-title').textContent='Add New Product';['f-sku','f-name','f-stock','f-min','f-reorder','f-cost','f-sell'].forEach(id=>document.getElementById(id).value='');document.getElementById('img-preview-area').innerHTML='';document.getElementById('img-upload-status').textContent='';document.getElementById('f-images').value='';document.getElementById('modal-product').classList.add('open');}
+function editProduct(p){editingProductId=p._id;pendingImageFiles=[];existingImages=p.images?[...p.images]:[];document.getElementById('modal-prod-title').textContent='Edit Product';document.getElementById('f-sku').value=p.sku;document.getElementById('f-name').value=p.name;document.getElementById('f-cat').value=p.category;document.getElementById('f-stock').value=p.currentStock;document.getElementById('f-min').value=p.minStock;document.getElementById('f-reorder').value=p.reorderPoint;document.getElementById('f-cost').value=p.costPrice;document.getElementById('f-sell').value=p.sellingPrice;document.getElementById('img-upload-status').textContent='';document.getElementById('f-images').value='';renderImagePreviews();document.getElementById('modal-product').classList.add('open');}
+async function uploadImagesForProduct(productId){if(!pendingImageFiles.length)return;const fd=new FormData();pendingImageFiles.forEach(f=>fd.append('images',f));try{const r=await fetch(`${API}/api/products/${productId}/upload-images`,{method:'POST',body:fd});if(!r.ok)throw new Error((await r.json()).error);const res=await r.json();return res.urls||[];}catch(e){toast('Image upload failed: '+e.message,'err');return[];}}
 async function saveProduct(){
   const data={sku:document.getElementById('f-sku').value.trim().toUpperCase(),name:document.getElementById('f-name').value.trim(),category:document.getElementById('f-cat').value,currentStock:+document.getElementById('f-stock').value,minStock:+document.getElementById('f-min').value,reorderPoint:+document.getElementById('f-reorder').value,costPrice:+document.getElementById('f-cost').value,sellingPrice:+document.getElementById('f-sell').value};
   if(!data.sku||!data.name){toast('Fill SKU and Name!','err');return;}
   data.status=data.currentStock===0?'out-of-stock':data.currentStock<=data.reorderPoint?'low-stock':'in-stock';
   try{
-    const r=await fetch(editingProductId?`${API}/api/products/${editingProductId}`:API+'/api/products',{method:editingProductId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-    if(!r.ok)throw new Error((await r.json()).error);
-    closeModal('modal-product');loadProducts();toast(editingProductId?'Product updated!':'Product added!','ok');
+    if(editingProductId){
+      data.images=existingImages;
+      const r=await fetch(`${API}/api/products/${editingProductId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+      if(!r.ok)throw new Error((await r.json()).error);
+      const updated=await r.json();
+      if(pendingImageFiles.length){await uploadImagesForProduct(updated._id);}
+      closeModal('modal-product');loadProducts();toast('Product updated!','ok');
+    }else{
+      const r=await fetch(API+'/api/products',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+      if(!r.ok)throw new Error((await r.json()).error);
+      const newProd=await r.json();
+      if(pendingImageFiles.length){await uploadImagesForProduct(newProd._id);}
+      closeModal('modal-product');loadProducts();toast('Product added!','ok');
+    }
   }catch(e){toast('Error: '+e.message,'err');}
 }
 async function deleteProduct(id){if(!confirm('Delete this product?'))return;await fetch(`${API}/api/products/${id}`,{method:'DELETE'});loadProducts();toast('Product deleted','ok');}
@@ -2340,7 +2425,51 @@ document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>
 function toast(msg,type){const el=document.getElementById('toast');el.textContent=msg;el.className='show '+type;setTimeout(()=>el.className='',3000);}
 document.getElementById('manual-sku').addEventListener('keydown',e=>{if(e.key==='Enter')lookupSKU(e.target.value);});
 
-loadDashboard();
+// ==================== AUTH ====================
+function togglePassVisibility(){const inp=document.getElementById('login-pass');const eyeOpen=document.getElementById('eye-open');const eyeClosed=document.getElementById('eye-closed');if(inp.type==='password'){inp.type='text';eyeOpen.style.display='none';eyeClosed.style.display='block';}else{inp.type='password';eyeOpen.style.display='block';eyeClosed.style.display='none';}}
+async function doLogin(e){
+  e.preventDefault();
+  const btn=document.getElementById('login-btn');
+  const err=document.getElementById('login-err');
+  err.textContent='';btn.textContent='Signing in...';btn.disabled=true;
+  try{
+    const r=await fetch(API+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:document.getElementById('login-user').value.trim(),password:document.getElementById('login-pass').value})});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Login failed');
+    localStorage.setItem('tb_token',d.token);
+    localStorage.setItem('tb_user',JSON.stringify(d.user));
+    showApp();
+  }catch(e){err.textContent=e.message;btn.textContent='Sign In';btn.disabled=false;}
+}
+function doLogout(){
+  localStorage.removeItem('tb_token');localStorage.removeItem('tb_user');
+  document.getElementById('login-overlay').classList.remove('hidden');
+  document.getElementById('main-nav').style.display='none';
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('login-pass').value='';document.getElementById('login-err').textContent='';
+  document.getElementById('login-btn').textContent='Sign In';document.getElementById('login-btn').disabled=false;
+}
+async function checkAuth(){
+  const token=localStorage.getItem('tb_token');
+  if(!token)return false;
+  try{
+    const r=await fetch(API+'/api/auth/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})});
+    const d=await r.json();
+    return d.valid;
+  }catch(e){return false;}
+}
+async function showApp(){
+  const valid=await checkAuth();
+  if(!valid){localStorage.removeItem('tb_token');localStorage.removeItem('tb_user');return;}
+  const user=JSON.parse(localStorage.getItem('tb_user')||'{}');
+  document.getElementById('nav-user-name').textContent=user.name||user.username||'';
+  document.getElementById('login-overlay').classList.add('hidden');
+  document.getElementById('main-nav').style.display='flex';
+  document.getElementById('page-dashboard').classList.add('active');
+  loadDashboard();
+}
+// Auto-login if token exists
+checkAuth().then(valid=>{if(valid)showApp();});
 </script>
 </body>
 </html>

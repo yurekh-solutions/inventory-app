@@ -94,8 +94,69 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/tubhyam-i
       await Product.create(tubhyamProducts.find(p => p.sku === 'TEST-001'));
       console.log('✅ Created test product TEST-001 (₹1)');
     }
+
+    // Ensure default admin user exists
+    const adminExists = await User.findOne({ role: 'admin' });
+    if (!adminExists) {
+      await User.create({
+        username: 'admin',
+        password: 'admin123',
+        name: 'Admin',
+        role: 'admin',
+        isActive: true,
+        permissions: {
+          canCreateInvoice: true,
+          canFinalizeInvoice: true,
+          canAdjustStock: true,
+          canImportInventory: true,
+          canViewReports: true,
+          canManageProducts: true,
+          canManageCustomers: true,
+          canOverrideNegativeStock: true
+        }
+      });
+      console.log('✅ Created default admin user (admin / admin123)');
+    }
   })
   .catch(err => console.error('❌ MongoDB Error:', err));
+
+// ==================== AUTH ROUTES ====================
+
+// Login
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
+    }
+    const user = await User.findOne({ username, isActive: true });
+    if (!user || user.password !== password) {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+    // Generate simple token (base64 payload with expiry)
+    const payload = { id: user._id, username: user.username, name: user.name, role: user.role, exp: Date.now() + 24 * 60 * 60 * 1000 };
+    const token = Buffer.from(JSON.stringify(payload)).toString('base64');
+    // Update last login
+    user.lastLogin = new Date();
+    await user.save();
+    res.json({ token, user: { id: user._id, username: user.username, name: user.name, role: user.role } });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Verify token
+app.post('/api/auth/verify', (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(401).json({ valid: false });
+    const payload = JSON.parse(Buffer.from(token, 'base64').toString());
+    if (payload.exp < Date.now()) return res.status(401).json({ valid: false, error: 'Token expired' });
+    res.json({ valid: true, user: { id: payload.id, username: payload.username, name: payload.name, role: payload.role } });
+  } catch (e) {
+    res.status(401).json({ valid: false });
+  }
+});
 
 // ==================== PRODUCT ROUTES ====================
 
