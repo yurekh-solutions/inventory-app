@@ -1,1 +1,1 @@
-Add Blog button in nav bar
+Move Blog button next to Dashboard for visibility
