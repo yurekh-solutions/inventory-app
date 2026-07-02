@@ -1,1 +1,1 @@
-Move Blog button next to Dashboard for visibility
+Fix Blog button to open tubhyam.in/admin/seo
