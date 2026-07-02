@@ -195,6 +195,7 @@ tr:hover td{background:rgba(60,45,35,0.4)}
   <button class="nav-btn" onclick="go('scanner',this)">Scanner</button>
   <button class="nav-btn" onclick="go('alerts',this)">Alerts</button>
   <button class="nav-btn" onclick="go('whatsapp',this)">WhatsApp</button>
+  <button class="nav-btn" onclick="window.open('/admin/seo','_blank')">Blog</button>
   <span class="nav-user" id="nav-user-name"></span>
   <div class="nav-logout"><button onclick="doLogout()">Logout</button></div>
 </nav>
@@ -862,8 +863,8 @@ tr:hover td{background:rgba(60,45,35,0.4)}
 <div id="toast"></div>
 
 <script>
-// API URL: empty string uses same origin (works locally and in production)
-const API = '';
+// API URL: /inventory when accessed through main app proxy, empty string for direct access
+const API = window.location.pathname.startsWith('/inventory') ? '/inventory' : '';
 let editingProductId = null, editingCustomerId = null, editingStockProduct = null;
 let scanner = null, scannerOn = false;
 
