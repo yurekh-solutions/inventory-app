@@ -8,7 +8,7 @@ import XLSX from 'xlsx';
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import multer from 'multer';
-import { Product, Supplier, Alert, SalesHistory, Customer, Broadcast, PaymentInquiry, Warehouse, StockLedger, BillingCustomer, Invoice, User, PurchaseOrder, BOM, ProductionOrder } from './models/Schemas.js';
+import { Product, Supplier, Alert, SalesHistory, Customer, Broadcast, PaymentInquiry, Warehouse, StockLedger, BillingCustomer, Invoice, User, PurchaseOrder, BOM, ProductionOrder, Blog } from './models/Schemas.js';
 import { tubhyamProducts } from './data/seedProducts.js';
 import { demandPredictor } from './ai/Predictor.js';
 import { whatsappService } from './services/WhatsAppService.js';
@@ -1967,6 +1967,139 @@ cron.schedule('0 10 * * 1', async () => {
   }
 
   console.log('✅ Predictions generated');
+});
+
+// ==================== BLOG API PROXY (proxy to main backend) ====================
+
+const MAIN_BACKEND = process.env.MAIN_BACKEND_URL || 'https://tubhyamoffical.onrender.com';
+const ADMIN_SECRET = process.env.ADMIN_SECRET || 'tubhyam_admin_2024';
+const blogAuthHeaders = { 'Authorization': `Bearer ${ADMIN_SECRET}`, 'Content-Type': 'application/json' };
+
+// GET /api/blogs/campaigns
+app.get('/api/blogs/campaigns', async (req, res) => {
+  try {
+    const r = await axios.get(`${MAIN_BACKEND}/api/blogs/campaigns`, { headers: blogAuthHeaders, timeout: 15000 });
+    res.json(r.data);
+  } catch (e) { res.status(500).json({ success: false, message: 'Blog API unavailable' }); }
+});
+
+// GET /api/blogs/campaigns/:id
+app.get('/api/blogs/campaigns/:id', async (req, res) => {
+  try {
+    const r = await axios.get(`${MAIN_BACKEND}/api/blogs/campaigns/${req.params.id}`, { headers: blogAuthHeaders, timeout: 15000 });
+    res.json(r.data);
+  } catch (e) { res.status(500).json({ success: false, message: 'Failed to fetch campaign' }); }
+});
+
+// GET /api/blogs/posts/:id
+app.get('/api/blogs/posts/:id', async (req, res) => {
+  try {
+    const r = await axios.get(`${MAIN_BACKEND}/api/blogs/posts/${req.params.id}`, { headers: blogAuthHeaders, timeout: 15000 });
+    res.json(r.data);
+  } catch (e) { res.status(500).json({ success: false, message: 'Failed to fetch post' }); }
+});
+
+// GET /api/blogs/admin/stats
+app.get('/api/blogs/admin/stats', async (req, res) => {
+  try {
+    const r = await axios.get(`${MAIN_BACKEND}/api/blogs/admin/stats`, { headers: blogAuthHeaders, timeout: 15000 });
+    res.json(r.data);
+  } catch (e) { res.status(500).json({ success: false, message: 'Failed to fetch stats' }); }
+});
+
+// GET /api/blogs/admin/search
+app.get('/api/blogs/admin/search', async (req, res) => {
+  try {
+    const r = await axios.get(`${MAIN_BACKEND}/api/blogs/admin/search?q=${encodeURIComponent(req.query.q || '')}`, { headers: blogAuthHeaders, timeout: 15000 });
+    res.json(r.data);
+  } catch (e) { res.status(500).json({ success: false, message: 'Search failed' }); }
+});
+
+// POST /api/blogs/campaigns
+app.post('/api/blogs/campaigns', async (req, res) => {
+  try {
+    const r = await axios.post(`${MAIN_BACKEND}/api/blogs/campaigns`, req.body, { headers: blogAuthHeaders, timeout: 60000 });
+    res.json(r.data);
+  } catch (e) {
+    if (e.response?.status === 429) return res.status(429).json({ success: false, message: 'AI rate limit reached. Wait a few minutes.' });
+    res.status(500).json({ success: false, message: 'Failed to create campaign' });
+  }
+});
+
+// POST /api/blogs/campaigns/:id/generate
+app.post('/api/blogs/campaigns/:id/generate', async (req, res) => {
+  try {
+    const r = await axios.post(`${MAIN_BACKEND}/api/blogs/campaigns/${req.params.id}/generate`, {}, { headers: blogAuthHeaders, timeout: 300000 });
+    res.json(r.data);
+  } catch (e) {
+    if (e.response?.status === 429) return res.status(429).json({ success: false, message: 'AI rate limit reached.' });
+    res.status(500).json({ success: false, message: 'Generation failed' });
+  }
+});
+
+// POST /api/blogs/campaigns/:id/pause
+app.post('/api/blogs/campaigns/:id/pause', async (req, res) => {
+  try { const r = await axios.post(`${MAIN_BACKEND}/api/blogs/campaigns/${req.params.id}/pause`, {}, { headers: blogAuthHeaders }); res.json(r.data); } catch { res.status(500).json({ success: false, message: 'Failed' }); }
+});
+
+// POST /api/blogs/campaigns/:id/resume
+app.post('/api/blogs/campaigns/:id/resume', async (req, res) => {
+  try { const r = await axios.post(`${MAIN_BACKEND}/api/blogs/campaigns/${req.params.id}/resume`, {}, { headers: blogAuthHeaders }); res.json(r.data); } catch { res.status(500).json({ success: false, message: 'Failed' }); }
+});
+
+// POST /api/blogs/campaigns/cleanup
+app.post('/api/blogs/campaigns/cleanup', async (req, res) => {
+  try { const r = await axios.post(`${MAIN_BACKEND}/api/blogs/campaigns/cleanup`, {}, { headers: blogAuthHeaders }); res.json(r.data); } catch { res.status(500).json({ success: false, message: 'Failed' }); }
+});
+
+// DELETE /api/blogs/campaigns/all
+app.delete('/api/blogs/campaigns/all', async (req, res) => {
+  try { const r = await axios.delete(`${MAIN_BACKEND}/api/blogs/campaigns/all`, { headers: blogAuthHeaders }); res.json(r.data); } catch { res.status(500).json({ success: false, message: 'Failed' }); }
+});
+
+// DELETE /api/blogs/campaigns/:id
+app.delete('/api/blogs/campaigns/:id', async (req, res) => {
+  try { const r = await axios.delete(`${MAIN_BACKEND}/api/blogs/campaigns/${req.params.id}`, { headers: blogAuthHeaders }); res.json(r.data); } catch { res.status(500).json({ success: false, message: 'Failed' }); }
+});
+
+// PUT /api/blogs/posts/:id
+app.put('/api/blogs/posts/:id', async (req, res) => {
+  try { const r = await axios.put(`${MAIN_BACKEND}/api/blogs/posts/${req.params.id}`, req.body, { headers: blogAuthHeaders }); res.json(r.data); } catch { res.status(500).json({ success: false, message: 'Failed' }); }
+});
+
+// POST /api/blogs/posts/:id/regenerate
+app.post('/api/blogs/posts/:id/regenerate', async (req, res) => {
+  try { const r = await axios.post(`${MAIN_BACKEND}/api/blogs/posts/${req.params.id}/regenerate`, req.body, { headers: blogAuthHeaders, timeout: 120000 }); res.json(r.data); } catch { res.status(500).json({ success: false, message: 'Failed' }); }
+});
+
+// POST /api/blogs/posts/:id/hold
+app.post('/api/blogs/posts/:id/hold', async (req, res) => {
+  try { const r = await axios.post(`${MAIN_BACKEND}/api/blogs/posts/${req.params.id}/hold`, {}, { headers: blogAuthHeaders }); res.json(r.data); } catch { res.status(500).json({ success: false, message: 'Failed' }); }
+});
+
+// POST /api/blogs/posts/:id/publish
+app.post('/api/blogs/posts/:id/publish', async (req, res) => {
+  try { const r = await axios.post(`${MAIN_BACKEND}/api/blogs/posts/${req.params.id}/publish`, {}, { headers: blogAuthHeaders }); res.json(r.data); } catch { res.status(500).json({ success: false, message: 'Failed' }); }
+});
+
+// POST /api/blogs/posts/:id/unpublish
+app.post('/api/blogs/posts/:id/unpublish', async (req, res) => {
+  try { const r = await axios.post(`${MAIN_BACKEND}/api/blogs/posts/${req.params.id}/unpublish`, {}, { headers: blogAuthHeaders }); res.json(r.data); } catch { res.status(500).json({ success: false, message: 'Failed' }); }
+});
+
+// DELETE /api/blogs/posts/:id
+app.delete('/api/blogs/posts/:id', async (req, res) => {
+  try { const r = await axios.delete(`${MAIN_BACKEND}/api/blogs/posts/${req.params.id}`, { headers: blogAuthHeaders }); res.json(r.data); } catch { res.status(500).json({ success: false, message: 'Failed' }); }
+});
+
+// POST /api/blogs/posts/batch-refresh-images
+app.post('/api/blogs/posts/batch-refresh-images', async (req, res) => {
+  try { const r = await axios.post(`${MAIN_BACKEND}/api/blogs/posts/batch-refresh-images`, {}, { headers: blogAuthHeaders, timeout: 120000 }); res.json(r.data); } catch { res.status(500).json({ success: false, message: 'Failed' }); }
+});
+
+// POST /api/blogs/posts/:id/refresh-images
+app.post('/api/blogs/posts/:id/refresh-images', async (req, res) => {
+  try { const r = await axios.post(`${MAIN_BACKEND}/api/blogs/posts/${req.params.id}/refresh-images`, {}, { headers: blogAuthHeaders }); res.json(r.data); } catch { res.status(500).json({ success: false, message: 'Failed' }); }
 });
 
 // ==================== START SERVER ====================

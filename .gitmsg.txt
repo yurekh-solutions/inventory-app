@@ -1,1 +1,8 @@
+Add blog management page with campaign system
+
+- Blog model added to Schemas.js
+- Blog API proxy routes to main backend (133 lines)
+- Full blog management UI: campaigns, search, post editor
+- Blog nav button integrated into main navigation
+- MAIN_BACKEND_URL and ADMIN_SECRET added to .env
 Fix Blog button to open tubhyam.in/admin/seo
