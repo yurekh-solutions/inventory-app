@@ -929,6 +929,7 @@ tr:hover td{background:rgba(60,45,35,0.4)}
         <div style="display:flex;gap:8px">
           <button class="btn btn-gray" style="font-size:12px" onclick="blogPauseCampaign()"> Pause</button>
           <button class="btn btn-gray" style="font-size:12px" onclick="blogResumeCampaign()">▶ Resume</button>
+          <button class="btn btn-gray" style="font-size:12px" onclick="blogBatchRefreshImages()">Refresh Images</button>
           <button class="btn btn-blue" id="blog-generate-btn" style="font-size:12px" onclick="blogGenerateCampaign()">✨ Generate</button>
         </div>
       </div>
@@ -937,28 +938,88 @@ tr:hover td{background:rgba(60,45,35,0.4)}
 
     <!-- Post Editor Modal -->
     <div class="modal-bg" id="modal-blog-post" style="display:none">
-      <div class="modal" style="max-width:800px;max-height:90vh;overflow-y:auto">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="modal" style="max-width:900px;max-height:92vh;overflow-y:auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <h3 id="blog-editor-title" style="font-family:var(--font-serif);color:var(--fg);margin:0;font-size:18px"></h3>
-          <button onclick="closeModal('modal-blog-post')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px"></button>
+          <button onclick="closeModal('modal-blog-post')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:24px">&times;</button>
         </div>
         <div id="blog-editor-status" style="margin-bottom:12px"></div>
-        <div class="field" style="margin-bottom:12px"><label>Title</label><input id="blog-edit-title" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:14px;outline:none;font-family:var(--font-sans)" /></div>
-        <div class="field" style="margin-bottom:12px"><label>Slug</label><input id="blog-edit-slug" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:13px;outline:none;font-family:monospace" /></div>
-        <div class="field" style="margin-bottom:12px"><label>Excerpt</label><textarea id="blog-edit-excerpt" rows="3" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:13px;outline:none;font-family:var(--font-sans);resize:vertical"></textarea></div>
-        <div class="field" style="margin-bottom:12px"><label>Content (HTML)</label><textarea id="blog-edit-content" rows="15" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:13px;outline:none;font-family:monospace;resize:vertical"></textarea></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-          <div class="field"><label>Meta Title</label><input id="blog-edit-metatitle" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:13px;outline:none;font-family:var(--font-sans)" /></div>
-          <div class="field"><label>Focus Keyword</label><input id="blog-edit-focuskw" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:13px;outline:none;font-family:var(--font-sans)" /></div>
+
+        <!-- Tabs -->
+        <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border)">
+          <button id="blog-tab-edit" onclick="blogSwitchTab('edit')" style="padding:8px 16px;background:transparent;border:none;color:var(--accent);border-bottom:2px solid var(--accent);cursor:pointer;font-size:13px;font-weight:600">Edit</button>
+          <button id="blog-tab-preview" onclick="blogSwitchTab('preview')" style="padding:8px 16px;background:transparent;border:none;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;font-size:13px">Preview</button>
+          <button id="blog-tab-seo" onclick="blogSwitchTab('seo')" style="padding:8px 16px;background:transparent;border:none;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;font-size:13px">SEO</button>
+          <button id="blog-tab-regen" onclick="blogSwitchTab('regen')" style="padding:8px 16px;background:transparent;border:none;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;font-size:13px">AI Tools</button>
         </div>
-        <div class="field" style="margin-bottom:12px"><label>Meta Description</label><textarea id="blog-edit-metadesc" rows="2" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:13px;outline:none;font-family:var(--font-sans);resize:vertical"></textarea></div>
-        <div class="field" style="margin-bottom:16px"><label>Tags (comma-separated)</label><input id="blog-edit-tags" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:13px;outline:none;font-family:var(--font-sans)" /></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+
+        <!-- Edit Tab -->
+        <div id="blog-panel-edit">
+          <div class="field" style="margin-bottom:12px"><label>Title</label><input id="blog-edit-title" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:14px;outline:none;font-family:var(--font-sans)" /></div>
+          <div class="field" style="margin-bottom:12px"><label>Slug</label><input id="blog-edit-slug" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:13px;outline:none;font-family:monospace" /></div>
+          <div class="field" style="margin-bottom:12px"><label>Excerpt</label><textarea id="blog-edit-excerpt" rows="3" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:13px;outline:none;font-family:var(--font-sans);resize:vertical"></textarea></div>
+          <div class="field" style="margin-bottom:12px"><label>Content (HTML)</label><textarea id="blog-edit-content" rows="14" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:13px;outline:none;font-family:monospace;resize:vertical"></textarea></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div class="field"><label>Meta Title</label><input id="blog-edit-metatitle" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:13px;outline:none;font-family:var(--font-sans)" /></div>
+            <div class="field"><label>Focus Keyword</label><input id="blog-edit-focuskw" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:13px;outline:none;font-family:var(--font-sans)" /></div>
+          </div>
+          <div class="field" style="margin-bottom:12px"><label>Meta Description</label><textarea id="blog-edit-metadesc" rows="2" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:13px;outline:none;font-family:var(--font-sans);resize:vertical"></textarea></div>
+          <div class="field" style="margin-bottom:16px"><label>Tags (comma-separated)</label><input id="blog-edit-tags" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:13px;outline:none;font-family:var(--font-sans)" /></div>
+        </div>
+
+        <!-- Preview Tab -->
+        <div id="blog-panel-preview" style="display:none">
+          <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:20px;max-height:60vh;overflow-y:auto">
+            <h1 id="blog-preview-title" style="font-family:var(--font-serif);font-size:24px;color:var(--fg);margin:0 0 12px"></h1>
+            <p id="blog-preview-meta" style="color:var(--muted);font-size:12px;margin-bottom:20px"></p>
+            <div id="blog-preview-body" style="color:var(--fg);font-size:14px;line-height:1.7"></div>
+          </div>
+        </div>
+
+        <!-- SEO Tab -->
+        <div id="blog-panel-seo" style="display:none">
+          <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px;color:#333">
+            <p style="font-size:12px;color:#202124;margin:0 0 4px" id="seo-preview-title"></p>
+            <p style="font-size:12px;color:#006621;margin:0 0 8px" id="seo-preview-url"></p>
+            <p style="font-size:13px;color:#545454;margin:0;line-height:1.5" id="seo-preview-desc"></p>
+          </div>
+          <div id="seo-checklist" style="background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:16px"></div>
+        </div>
+
+        <!-- AI Tools Tab -->
+        <div id="blog-panel-regen" style="display:none">
+          <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">
+            <h4 style="margin:0 0 12px;color:var(--fg);font-size:14px">Regenerate with AI</h4>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+              <div class="field"><label>Target</label>
+                <select id="blog-regen-target" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:13px;outline:none">
+                  <option value="all">Text + Images</option>
+                  <option value="text">Text only</option>
+                  <option value="images">Images only</option>
+                </select>
+              </div>
+              <div class="field"><label>Model</label>
+                <select id="blog-generation-mode" style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:13px;outline:none">
+                  <option value="jit">Just-in-time</option>
+                  <option value="batch">Batch</option>
+                </select>
+              </div>
+            </div>
+            <div class="field" style="margin-bottom:12px"><label>Instruction (optional)</label><textarea id="blog-regen-instruction" rows="3" placeholder="e.g. make it shorter, add a CTA, focus on office wear..." style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-size:13px;outline:none;font-family:var(--font-sans);resize:vertical"></textarea></div>
+            <button class="btn btn-blue" onclick="blogRegenPost()">Regenerate</button>
+          </div>
+          <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:16px">
+            <h4 style="margin:0 0 12px;color:var(--fg);font-size:14px">Product Images</h4>
+            <p style="font-size:12px;color:var(--muted);margin:0 0 12px">Replace AI-generated images with real Tubhyam product photos.</p>
+            <button class="btn btn-gray" onclick="blogRefreshPostImages()">Refresh Images</button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
           <button class="btn btn-blue" onclick="blogSavePost()">Save</button>
-          <button class="btn btn-gray" onclick="blogRegenPost()">Regenerate</button>
           <button class="btn btn-gray" onclick="blogHoldPost()">Hold/Unhold</button>
           <button class="btn btn-blue" id="blog-publish-btn" onclick="blogPublishPost()">Publish</button>
-          <button class="btn btn-gray" onclick="blogDeletePost()" style="color:#ef5350">Delete</button>
+          <button class="btn btn-gray" onclick="blogDeletePost()" style="color:#ef5350;margin-left:auto">Delete</button>
         </div>
       </div>
     </div>
@@ -2683,6 +2744,17 @@ async function blogGenerateCampaign() {
   btn.textContent = '✨ Generate'; btn.disabled = false;
 }
 
+async function blogBatchRefreshImages() {
+  if (!blogCurrentCampaignId) return;
+  if (!confirm('Replace AI images with real product photos for ALL published posts in this campaign?')) return;
+  try {
+    const r = await fetch(`${BLOG_API}/posts/batch-refresh-images`, { method: 'POST', headers: BLOG_AUTH });
+    const d = await r.json();
+    if (d.success) { toast(d.message); blogOpenCampaign(blogCurrentCampaignId); await blogLoadStats(); }
+    else toast(d.message || 'Failed', 'error');
+  } catch { toast('Batch refresh failed', 'error'); }
+}
+
 async function blogPauseCampaign() { if (!blogCurrentCampaignId) return; try { await fetch(`${BLOG_API}/campaigns/${blogCurrentCampaignId}/pause`, { method: 'POST', headers: BLOG_AUTH }); toast('Campaign paused'); blogOpenCampaign(blogCurrentCampaignId); } catch { /* silent */ } }
 async function blogResumeCampaign() { if (!blogCurrentCampaignId) return; try { await fetch(`${BLOG_API}/campaigns/${blogCurrentCampaignId}/resume`, { method: 'POST', headers: BLOG_AUTH }); toast('Campaign resumed'); blogOpenCampaign(blogCurrentCampaignId); } catch { /* silent */ } }
 async function blogDeleteCampaign(id, keyword) { if (!confirm(`Delete "${keyword}" campaign and ALL its posts?`)) return; try { const r = await fetch(`${BLOG_API}/campaigns/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer tubhyam_admin_2024' } }); const d = await r.json(); if (d.success) { toast('Campaign deleted'); blogBackToList(); await loadBlog(); } else toast(d.message || 'Failed', 'error'); } catch { toast('Failed', 'error'); } }
@@ -2711,6 +2783,7 @@ async function blogSearch(q) {
 
 async function blogOpenPost(postId) {
   blogCurrentPostId = postId;
+  blogSwitchTab('edit');
   try {
     const r = await fetch(`${BLOG_API}/posts/${postId}`, { headers: { 'Authorization': 'Bearer tubhyam_admin_2024' } });
     const d = await r.json();
@@ -2726,11 +2799,101 @@ async function blogOpenPost(postId) {
     document.getElementById('blog-edit-metadesc').value = p.metaDescription || '';
     document.getElementById('blog-edit-focuskw').value = p.focusKeyword || '';
     document.getElementById('blog-edit-tags').value = (p.tags || []).join(', ');
+    document.getElementById('blog-regen-instruction').value = '';
+    document.getElementById('blog-regen-target').value = 'all';
     const pubBtn = document.getElementById('blog-publish-btn');
     if (p.status === 'published') { pubBtn.textContent = 'Unpublish'; pubBtn.onclick = blogUnpublishPost; }
     else { pubBtn.textContent = 'Publish'; pubBtn.onclick = blogPublishPost; }
+    blogUpdatePreview(p);
+    blogUpdateSEO(p);
     document.getElementById('modal-blog-post').style.display = 'flex';
   } catch { toast('Failed to load post', 'error'); }
+}
+
+function blogSwitchTab(tab) {
+  ['edit', 'preview', 'seo', 'regen'].forEach(t => {
+    const btn = document.getElementById('blog-tab-' + t);
+    const panel = document.getElementById('blog-panel-' + t);
+    const active = t === tab;
+    btn.style.color = active ? 'var(--accent)' : 'var(--muted)';
+    btn.style.borderBottomColor = active ? 'var(--accent)' : 'transparent';
+    btn.style.fontWeight = active ? '600' : '400';
+    panel.style.display = active ? 'block' : 'none';
+  });
+  if (tab === 'preview') blogUpdatePreviewFromForm();
+  if (tab === 'seo') blogUpdateSEOFromForm();
+}
+
+function blogUpdatePreview(p) {
+  document.getElementById('blog-preview-title').textContent = p.title || '';
+  document.getElementById('blog-preview-meta').textContent = `${p.category || 'Blog'} · Day ${p.dayIndex || 0} · ${p.readTime || 5} min read`;
+  document.getElementById('blog-preview-body').innerHTML = p.content || '';
+}
+
+function blogUpdatePreviewFromForm() {
+  const title = document.getElementById('blog-edit-title').value;
+  const content = document.getElementById('blog-edit-content').value;
+  document.getElementById('blog-preview-title').textContent = title;
+  document.getElementById('blog-preview-body').innerHTML = content;
+}
+
+function blogUpdateSEO(p) {
+  const kw = p.focusKeyword || '';
+  const title = p.metaTitle || p.title || '';
+  const desc = p.metaDescription || p.excerpt || '';
+  const slug = p.slug || '';
+  document.getElementById('seo-preview-title').textContent = title || 'No title';
+  document.getElementById('seo-preview-url').textContent = `https://www.tubhyam.in/blog/${slug || 'post-slug'}`;
+  document.getElementById('seo-preview-desc').textContent = desc || 'No meta description';
+
+  const content = (p.content || '').toLowerCase();
+  const lowerTitle = title.toLowerCase();
+  const checks = [
+    { label: 'Focus keyword in title', pass: kw && lowerTitle.includes(kw.toLowerCase()) },
+    { label: 'Focus keyword in content', pass: kw && content.includes(kw.toLowerCase()) },
+    { label: 'Meta title length 30-60 chars', pass: title.length >= 30 && title.length <= 60 },
+    { label: 'Meta description length 120-160 chars', pass: desc.length >= 120 && desc.length <= 160 },
+    { label: 'Content has H2 headings', pass: /<h2/i.test(p.content || '') },
+    { label: 'Images have alt text', pass: !/<img[^>]*>(?!.*alt=)/i.test(p.content || '') },
+  ];
+  document.getElementById('seo-checklist').innerHTML = checks.map(c => `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px">
+      <span style="width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${c.pass ? '#1B3A1B' : '#4A4036'};color:${c.pass ? '#81C784' : '#E65100'};font-size:11px">${c.pass ? '✓' : '!'}</span>
+      <span style="color:var(--fg)">${c.label}</span>
+    </div>
+  `).join('');
+}
+
+function blogUpdateSEOFromForm() {
+  const p = {
+    title: document.getElementById('blog-edit-title').value,
+    metaTitle: document.getElementById('blog-edit-metatitle').value,
+    metaDescription: document.getElementById('blog-edit-metadesc').value,
+    focusKeyword: document.getElementById('blog-edit-focuskw').value,
+    slug: document.getElementById('blog-edit-slug').value,
+    excerpt: document.getElementById('blog-edit-excerpt').value,
+    content: document.getElementById('blog-edit-content').value,
+    dayIndex: 0, readTime: 5, category: ''
+  };
+  blogUpdateSEO(p);
+}
+
+async function blogRefreshPostImages() {
+  if (!blogCurrentPostId) return;
+  if (!confirm('Replace AI images with real product photos for this post?')) return;
+  try {
+    const r = await fetch(`${BLOG_API}/posts/${blogCurrentPostId}/refresh-images`, { method: 'POST', headers: BLOG_AUTH });
+    const d = await r.json();
+    if (d.success) {
+      toast(d.message);
+      if (d.post) {
+        document.getElementById('blog-edit-content').value = d.post.content || '';
+        blogUpdatePreview(d.post);
+      }
+      if (blogCurrentCampaignId) blogOpenCampaign(blogCurrentCampaignId);
+      await blogLoadStats();
+    } else toast(d.message || 'Failed', 'error');
+  } catch { toast('Image refresh failed', 'error'); }
 }
 
 async function blogSavePost() {
@@ -2758,11 +2921,20 @@ async function blogSavePost() {
 
 async function blogRegenPost() {
   if (!blogCurrentPostId) return;
-  if (!confirm('Regenerate this post?')) return;
+  const target = document.getElementById('blog-regen-target').value;
+  const instruction = document.getElementById('blog-regen-instruction').value.trim();
+  if (!confirm(`Regenerate ${target === 'all' ? 'text + images' : target} for this post?`)) return;
   try {
-    const r = await fetch(`${BLOG_API}/posts/${blogCurrentPostId}/regenerate`, { method: 'POST', headers: BLOG_AUTH, body: JSON.stringify({ target: 'all' }) });
+    const r = await fetch(`${BLOG_API}/posts/${blogCurrentPostId}/regenerate`, {
+      method: 'POST', headers: BLOG_AUTH,
+      body: JSON.stringify({ target, instruction })
+    });
     const d = await r.json();
-    if (d.success) { toast('Regenerated'); closeModal('modal-blog-post'); if (blogCurrentCampaignId) blogOpenCampaign(blogCurrentCampaignId); await blogLoadStats(); }
+    if (d.success) {
+      toast('Regenerated');
+      if (d.post) blogOpenPost(d.post._id || blogCurrentPostId);
+      else { closeModal('modal-blog-post'); if (blogCurrentCampaignId) blogOpenCampaign(blogCurrentCampaignId); await blogLoadStats(); }
+    }
     else toast(d.message || 'Failed', 'error');
   } catch { toast('Regenerate failed', 'error'); }
 }
