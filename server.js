@@ -13,6 +13,7 @@ import { tubhyamProducts } from './data/seedProducts.js';
 import { demandPredictor } from './ai/Predictor.js';
 import { whatsappService } from './services/WhatsAppService.js';
 import cron from 'node-cron';
+import axios from 'axios';
 
 dotenv.config();
 
