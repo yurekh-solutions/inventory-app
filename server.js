@@ -176,7 +176,7 @@ app.get('/api/products', async (req, res) => {
       ];
     }
 
-    const products = await Product.find(query).populate('supplier');
+    const products = await Product.find(query).populate('supplier').sort({ sku: 1 });
     res.json(products);
   } catch (error) {
     res.status(500).json({ error: error.message });

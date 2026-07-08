@@ -1,3 +1,4 @@
+fix: deterministic product ordering via SKU sort
 Add blog management page with campaign system
 
 - Blog model added to Schemas.js
